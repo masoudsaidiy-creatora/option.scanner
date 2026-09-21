@@ -954,6 +954,55 @@ async function runDebug(){
     add('✅ تمام', 'good');
   }catch(e){ add('❌ '+e.message, 'bad'); }
 }
+  // ═══════════════════════════════════════════════════════
+// v8.0 — تشخیص CALL/PUT از فیلد lva (ض/ط)
+// ═══════════════════════════════════════════════════════
+function parseLvc(lvc, lva){
+  var r = {type:'?', strike:'', strikeNum:0, expiry:''};
+  // نوع از lva (ض/ط)
+  if(lva){
+    if(lva.indexOf('ط') !== -1) r.type = 'p';
+    else if(lva.indexOf('ض') !== -1) r.type = 'c';
+  }
+  // fallback از lvc
+  if(r.type === '?' && lvc){
+    if(lvc.indexOf('اختیارخ') !== -1) r.type = 'c';
+    else if(lvc.indexOf('اختیارف') !== -1) r.type = 'p';
+  }
+  // استخراج از lvc
+  if(lvc){
+    var dm = lvc.match(/(\d{4}\/\d{1,2}\/\d{1,2})/);
+    if(dm) r.expiry = dm[1];
+    var parts = lvc.split('-');
+    for(var i=0;i<parts.length;i++){
+      var p = parts[i].trim();
+      if(p !== r.expiry && /^\d+$/.test(p) && p.length < 8){
+        r.strike = p; r.strikeNum = parseInt(p)||0; break;
+      }
+    }
+  }
+  return r;
+}
+
+function filterBySymbol(watch, sym){
+  var info = SYMBOL_MAP[sym]; if(!info) return [];
+  var kw = info.optionKeyword || sym;
+  var results = [];
+  for(var i=0;i<watch.length;i++){
+    var item = watch[i];
+    var lvc = item.lvc || '';
+    var lva = item.lva || '';
+    if(lvc.indexOf(kw) === -1) continue;
+    var isOpt = lvc.indexOf('اختیار') !== -1 || lva.indexOf('ض') !== -1 || lva.indexOf('ط') !== -1;
+    if(!isOpt) continue;
+    var p = parseLvc(lvc, lva);
+    if(p.type === '?') continue;
+    var price = item.pDrCotVal || item.pcl || item.pdv || 0;
+    if(!price) continue;
+    results.push({code:lva, raw:lvc, type:p.type, strike:p.strike, strikeNum:p.strikeNum, expiry:p.expiry, price:price, volume:item.zTotTran||0, baseSymbol:sym, days:daysToExpiry(p.expiry)});
+  }
+  return results;
+}
 </script>
 </body>
 </html>
