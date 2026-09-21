@@ -214,7 +214,7 @@ body{background:#0b1120;color:#e2e8f0;padding:10px;padding-bottom:85px;font-size
 
 <div class="head">
 <h1>🧠 اسکنر حرفه‌ای آپشن</h1>
-<p>v6.9 • parseLvc اصلاح‌شده + ۴ اسپرد</p>
+<p>v7.1 • PUT detection + CALL/PUT debug</p>
 <span class="native-badge" id="nativeBadge" style="display:none">📱 APK Native</span>
 </div>
 
@@ -284,13 +284,13 @@ body{background:#0b1120;color:#e2e8f0;padding:10px;padding-bottom:85px;font-size
 
 <div id="p-debug" class="panel">
 <div class="card">
-<h3 style="color:#a3e635;font-size:14px;margin-bottom:10px">🔍 حالت تشخیص (Debug) v6.9</h3>
+<h3 style="color:#a3e635;font-size:14px;margin-bottom:10px">🔍 Debug v7.1 — CALL/PUT breakdown</h3>
 <div class="btns">
 <button class="b3" onclick="runDebug()" id="btnDebug">🔍 تست کامل</button>
 <button class="b2" onclick="document.getElementById('debugOutput').textContent=''">🗑 پاک</button>
 </div>
 <div class="search-box">
-<input type="text" id="searchStock" placeholder="🔍 سرچ سهام (مثال: مس، سایپا، شستا)" oninput="searchStockLive(this.value)">
+<input type="text" id="searchStock" placeholder="🔍 سرچ سهام" oninput="searchStockLive(this.value)">
 </div>
 <div id="searchResults"></div>
 <div id="debugOutput" class="debug-panel">دکمه «تست کامل» رو بزن...</div>
@@ -494,16 +494,22 @@ function probBetween(S,low,high,T,sigma,r){if(T<=0||sigma<=0)return 0;var mu=Mat
 function probAbove(S,K,T,sigma,r){if(T<=0||sigma<=0)return S>K?1:0;var mu=Math.log(S)+(r-sigma*sigma/2)*T,sd=sigma*Math.sqrt(T);return 1-N((Math.log(K)-mu)/sd);}
 function probBelow(S,K,T,sigma,r){return 1-probAbove(S,K,T,sigma,r);}
 
-// 🎯 parseLvc اصلاح‌شده — از آخر
+// 🎯 parseLvc با تشخیص بهتر PUT (چند الگو)
 function parseLvc(lvc){
-  var r={type:'?',strike:'',expiry:'',strikeNum:0};
+  var r={type:'c',strike:'',expiry:'',strikeNum:0};
   if(!lvc)return r;
   var lvcN = lvc.replace(/[- \u200c]/g,'');
-  if(lvcN.indexOf('اختیارخ')!==-1)r.type='c';
-  else if(lvcN.indexOf('اختیارف')!==-1)r.type='p';
-  else if(lvc.indexOf('ض')===0)r.type='c';
-  else if(lvc.indexOf('ط')===0)r.type='p';
-  else if(/\d/.test(lvc))r.type='c';
+  // PUT detection — چند الگو
+  if(lvcN.indexOf('اختیارف') !== -1) r.type='p';
+  else if(lvcN.indexOf('اختیارفروش') !== -1) r.type='p';
+  else if(lvc.indexOf('ط') === 0) r.type='p';
+  else if(lvcN.indexOf('put') !== -1 || lvcN.indexOf('PUT') !== -1) r.type='p';
+  // CALL detection
+  else if(lvcN.indexOf('اختیارخ') !== -1) r.type='c';
+  else if(lvcN.indexOf('اختیارخرید') !== -1) r.type='c';
+  else if(lvc.indexOf('ض') === 0) r.type='c';
+  else r.type='c';
+  // استخراج strike و expiry از آخر
   var parts = lvc.split('-').map(function(p){return p.trim();}).filter(function(p){return p.length>0;});
   if(parts.length >= 3){
     r.strike = parts[parts.length - 1];
@@ -666,25 +672,26 @@ async function runScan(silent){
 function passesLiq(leg){var m=parseFloat(document.getElementById('minVolume').value)||0;return leg.volume>=m;}
 function isTop(leg){if(!document.getElementById('onlyTopStrikes').checked)return true;return leg.volRank<=5||leg.volPct>=20;}
 
+// 🎯 findSpreads با فیلترهای خیلی راحت‌تر
 function findSpreads(){
   SPREADS={bullCall:[],bearCall:[],bullPut:[],bearPut:[]};
-  var S=getBasePrice(CURRENT_SYMBOL),mla=S*30/100;
+  var S=getBasePrice(CURRENT_SYMBOL),mla=S*100/100;
   var byExp={};
   CHAIN_DATA.forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]={calls:[],puts:[]};if(r.type==='c')byExp[r.expiry].calls.push(r);else if(r.type==='p')byExp[r.expiry].puts.push(r);});
   Object.keys(byExp).forEach(function(exp){
     var g=byExp[exp];
     var calls=g.calls.slice().sort(function(a,b){return a.strikeNum-b.strikeNum;}),puts=g.puts.slice().sort(function(a,b){return a.strikeNum-b.strikeNum;});
     var i,j,T=(calls[0]?calls[0].days:puts[0]?puts[0].days:30)/365,sig=0.55,r=0.25;
-    for(i=0;i<calls.length;i++)for(j=i+1;j<calls.length;j++){var b=calls[i],s=calls[j],d=b.price-s.price;if(d<=0)continue;var w=s.strikeNum-b.strikeNum;if(w<=0)continue;var mp=w-d,ml=d;if(mp<=0||ml<=0||ml>mla)continue;var rr=mp/ml;if(rr<0.3)continue;var be=b.strikeNum+d;SPREADS.bullCall.push({type:'bull_call_spread',name:'کال اسپرد صعودی',bias:'bull',netType:'debit',expiry:exp,legs:[{...b,action:'buy'},{...s,action:'sell'}],net:d,width:w,maxProfit:mp,maxLoss:ml,rr:rr,breakEven:be,safetyPct:(S-be)/S*100,S:S,pop:probAbove(S,be,T,sig,r),T:T,sigma:sig});}
-    for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){var s2=puts[i],b2=puts[j],d2=b2.price-s2.price;if(d2<=0)continue;var w2=b2.strikeNum-s2.strikeNum;if(w2<=0)continue;var mp2=w2-d2,ml2=d2;if(mp2<=0||ml2<=0||ml2>mla)continue;var rr2=mp2/ml2;if(rr2<0.3)continue;var be2=b2.strikeNum-d2;SPREADS.bearPut.push({type:'bear_put_spread',name:'پوت اسپرد نزولی',bias:'bear',netType:'debit',expiry:exp,legs:[{...b2,action:'buy'},{...s2,action:'sell'}],net:d2,width:w2,maxProfit:mp2,maxLoss:ml2,rr:rr2,breakEven:be2,safetyPct:(S-be2)/S*100,S:S,pop:probBelow(S,be2,T,sig,r),T:T,sigma:sig});}
-    for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){var bl=puts[i],sh=puts[j],cr=sh.price-bl.price;if(cr<=0)continue;var w3=sh.strikeNum-bl.strikeNum;if(w3<=0)continue;var mp3=cr,ml3=w3-cr;if(mp3<=0||ml3<=0||ml3>mla)continue;var rr3=mp3/ml3;if(rr3<0.3)continue;var be3=sh.strikeNum-cr;SPREADS.bullPut.push({type:'bull_put_spread',name:'پوت اسپرد صعودی (اعتباری)',bias:'bull',netType:'credit',expiry:exp,legs:[{...bl,action:'buy'},{...sh,action:'sell'}],net:cr,width:w3,maxProfit:mp3,maxLoss:ml3,rr:rr3,breakEven:be3,safetyPct:(S-be3)/S*100,S:S,pop:probAbove(S,be3,T,sig,r),T:T,sigma:sig});}
-    for(i=0;i<calls.length;i++)for(j=i+1;j<calls.length;j++){var sl=calls[i],bh=calls[j],cr2=sl.price-bh.price;if(cr2<=0)continue;var w4=bh.strikeNum-sl.strikeNum;if(w4<=0)continue;var mp4=cr2,ml4=w4-cr2;if(mp4<=0||ml4<=0||ml4>mla)continue;var rr4=mp4/ml4;if(rr4<0.3)continue;var be4=sl.strikeNum+cr2;SPREADS.bearCall.push({type:'bear_call_spread',name:'کال اسپرد نزولی (اعتباری)',bias:'bear',netType:'credit',expiry:exp,legs:[{...bh,action:'buy'},{...sl,action:'sell'}],net:cr2,width:w4,maxProfit:mp4,maxLoss:ml4,rr:rr4,breakEven:be4,safetyPct:(be4-S)/S*100,S:S,pop:probBelow(S,be4,T,sig,r),T:T,sigma:sig});}
+    for(i=0;i<calls.length;i++)for(j=i+1;j<calls.length;j++){var b=calls[i],s=calls[j],d=b.price-s.price;if(d<=0)continue;var w=s.strikeNum-b.strikeNum;if(w<=0)continue;var mp=w-d,ml=d;if(mp<=0||ml<=0||ml>mla)continue;var rr=mp/ml;if(rr<0.05)continue;var be=b.strikeNum+d;SPREADS.bullCall.push({type:'bull_call_spread',name:'کال اسپرد صعودی',bias:'bull',netType:'debit',expiry:exp,legs:[{...b,action:'buy'},{...s,action:'sell'}],net:d,width:w,maxProfit:mp,maxLoss:ml,rr:rr,breakEven:be,safetyPct:(S-be)/S*100,S:S,pop:probAbove(S,be,T,sig,r),T:T,sigma:sig});}
+    for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){var s2=puts[i],b2=puts[j],d2=b2.price-s2.price;if(d2<=0)continue;var w2=b2.strikeNum-s2.strikeNum;if(w2<=0)continue;var mp2=w2-d2,ml2=d2;if(mp2<=0||ml2<=0||ml2>mla)continue;var rr2=mp2/ml2;if(rr2<0.05)continue;var be2=b2.strikeNum-d2;SPREADS.bearPut.push({type:'bear_put_spread',name:'پوت اسپرد نزولی',bias:'bear',netType:'debit',expiry:exp,legs:[{...b2,action:'buy'},{...s2,action:'sell'}],net:d2,width:w2,maxProfit:mp2,maxLoss:ml2,rr:rr2,breakEven:be2,safetyPct:(S-be2)/S*100,S:S,pop:probBelow(S,be2,T,sig,r),T:T,sigma:sig});}
+    for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){var bl=puts[i],sh=puts[j],cr=sh.price-bl.price;if(cr<=0)continue;var w3=sh.strikeNum-bl.strikeNum;if(w3<=0)continue;var mp3=cr,ml3=w3-cr;if(mp3<=0||ml3<=0||ml3>mla)continue;var rr3=mp3/ml3;if(rr3<0.05)continue;var be3=sh.strikeNum-cr;SPREADS.bullPut.push({type:'bull_put_spread',name:'پوت اسپرد صعودی (اعتباری)',bias:'bull',netType:'credit',expiry:exp,legs:[{...bl,action:'buy'},{...sh,action:'sell'}],net:cr,width:w3,maxProfit:mp3,maxLoss:ml3,rr:rr3,breakEven:be3,safetyPct:(S-be3)/S*100,S:S,pop:probAbove(S,be3,T,sig,r),T:T,sigma:sig});}
+    for(i=0;i<calls.length;i++)for(j=i+1;j<calls.length;j++){var sl=calls[i],bh=calls[j],cr2=sl.price-bh.price;if(cr2<=0)continue;var w4=bh.strikeNum-sl.strikeNum;if(w4<=0)continue;var mp4=cr2,ml4=w4-cr2;if(mp4<=0||ml4<=0||ml4>mla)continue;var rr4=mp4/ml4;if(rr4<0.05)continue;var be4=sl.strikeNum+cr2;SPREADS.bearCall.push({type:'bear_call_spread',name:'کال اسپرد نزولی (اعتباری)',bias:'bear',netType:'credit',expiry:exp,legs:[{...bh,action:'buy'},{...sl,action:'sell'}],net:cr2,width:w4,maxProfit:mp4,maxLoss:ml4,rr:rr4,breakEven:be4,safetyPct:(be4-S)/S*100,S:S,pop:probBelow(S,be4,T,sig,r),T:T,sigma:sig});}
   });
   ['bullCall','bearCall','bullPut','bearPut'].forEach(function(k){
     SPREADS[k]=SPREADS[k].filter(function(sp){return sp.legs.every(function(l){return passesLiq(l)&&isTop(l);});});
     SPREADS[k].forEach(function(sp){ sp.score=(sp.pop||0)*40 + Math.min(sp.rr,2)/2*20 + ((sp.netType==='credit')?15:0); });
     SPREADS[k].sort(function(a,b){return (b.score||0)-(a.score||0);});
-    SPREADS[k]=SPREADS[k].slice(0,3);
+    SPREADS[k]=SPREADS[k].slice(0,5);
   });
 }
 
@@ -757,48 +764,40 @@ async function searchStockLive(query){
   }, 500);
 }
 
+// 🎯 Debug v7.1 — CALL/PUT breakdown
 async function runDebug(){
   var out=document.getElementById('debugOutput');
   var log=[];
   function add(line,cls){ log.push('<span class="'+(cls||'')+'">'+line+'</span>'); out.innerHTML=log.join('\n'); out.scrollTop=out.scrollHeight; }
   try{
-    add('🔍 شروع تست v6.9 — '+new Date().toLocaleTimeString('fa-IR'), 'info');
+    add('🔍 Debug v7.1', 'info');
     add('IS_NATIVE: '+window.IS_NATIVE, window.IS_NATIVE?'good':'warn');
     add('', '');
-    add('━━━ دریافت داده آپشن ━━━', 'info');
     ALL_DATA=[];
-    var watch=await fetchAll(true);
-    add('کل قراردادهای آپشن TSE: '+watch.length, watch.length > 100 ? 'good' : 'bad');
+    var watch = await fetchAll(true);
+    add('کل قراردادهای TSE: '+watch.length, 'good');
     add('', '');
-    add('━━━ تست هر نماد ━━━', 'info');
+    add('━━━ CALL/PUT breakdown ━━━', 'info');
     var syms=Object.keys(SYMBOL_MAP);
     for(var i=0;i<syms.length;i++){
       var sym=syms[i];
       var data=filterBySymbol(watch, sym);
-      var status=data.length===0?'bad':data.length>=5?'good':'warn';
-      add('«'+sym+'» ('+SYMBOL_MAP[sym].exact+') → '+data.length+' قرارداد', status);
-      if(data.length > 0 && data.length <= 3){
-        data.slice(0,3).forEach(function(d){
-          add('      • '+d.raw+' | strike='+d.strikeNum+' exp='+d.expiry, 'dim');
-        });
-      }
+      var calls=0,puts=0,other=0;
+      data.forEach(function(r){ if(r.type==='c')calls++; else if(r.type==='p')puts++; else other++; });
+      var status = (calls>0 && puts>0) ? 'good' : (calls>0||puts>0) ? 'warn' : 'bad';
+      add('«'+sym+'» CALL: '+calls+' | PUT: '+puts+' | other: '+other, status);
     }
     add('', '');
-    add('━━━ قیمت پایه ━━━', 'info');
-    var stocks=await fetchStocks(true);
-    add('کل سهام TSE: '+stocks.length, 'good');
-    for(var i=0;i<syms.length;i++){
-      var sym=syms[i];
-      var result=findStockBySymbol(stocks, sym);
-      if(result.found){
-        var p = result.found.pDrCotVal||result.found.pcl||0;
-        add('«'+sym+'» → '+result.found.lvc+' @ '+p, 'good');
-      }else{
-        add('«'+sym+'» → پیدا نشد ❌', 'bad');
-      }
-    }
+    add('━━━ نمونه لواها (خودرو) ━━━', 'info');
+    var selfData = watch.filter(function(x){return (x.lvc||'').indexOf('خودرو')!==-1;});
+    add('تعداد کل: '+selfData.length, '');
+    selfData.slice(0,20).forEach(function(x){
+      var p = parseLvc(x.lvc);
+      var cls = p.type==='p' ? 'warn' : 'dim';
+      add('  '+x.lvc+' → type='+p.type+' strike='+p.strikeNum, cls);
+    });
     add('', '');
-    add('✅ تست کامل شد', 'good');
+    add('✅ تمام', 'good');
   }catch(e){
     add('❌ خطا: '+e.message, 'bad');
   }
@@ -816,7 +815,7 @@ async function runAdvanced(kind){
     if(kind==='jade'||kind==='all')results=results.concat(scanJade(chain,S));
     if(kind==='ratio'||kind==='all')results=results.concat(scanRatio(chain,S));
     if(kind==='ironcondor'||kind==='all')results=results.concat(scanIronCondor(chain,S));
-    results=results.filter(function(r){return (r.pop||0)>=0.5 && (r.rr||0)>=0.2;});
+    results=results.filter(function(r){return (r.pop||0)>=0.5 && (r.rr||0)>=0.15;});
     results.forEach(function(r){r.winScore=calcWinScore(r);});
     results.sort(function(a,b){return b.winScore.total-a.winScore.total;});
     if(!results.length){setStatus('advStatus','⚠️ فرصتی نیست','warn');hideLoading();return;}
@@ -825,10 +824,10 @@ async function runAdvanced(kind){
   hideLoading();
 }
 function calcWinScore(r){var s=0,pop=r.pop||0.5;s+=pop*35;var rr=r.rr||0;if(r.netType==='credit')s+=Math.min(rr,1)*10;else s+=Math.min(rr,2)/2*15;var dte=(r.T||30/365)*365;if(dte>=21&&dte<=45)s+=10;else if(dte>=14&&dte<=60)s+=5;if(r.netType==='credit')s+=10;var mv=Math.min.apply(null,r.legs.map(function(l){return l.volume||0;}));if(mv>=500)s+=15;else if(mv>=100)s+=10;else if(mv>=20)s+=5;s=Math.min(100,Math.max(0,s));var g='F';if(s>=80)g='A';else if(s>=65)g='B';else if(s>=50)g='C';else if(s>=35)g='D';return{total:s,grade:g};}
-function scanButterfly(chain,S){var byExp={};chain.filter(function(r){return r.type==='c';}).forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]=[];byExp[r.expiry].push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=(calls[0].days||30)/365;var sig=0.55,r=0.25;for(var i=0;i<calls.length;i++)for(var j=i+1;j<calls.length;j++)for(var k=j+1;k<calls.length;k++){var low=calls[i],mid=calls[j],high=calls[k];var d1=mid.strikeNum-low.strikeNum,d2=high.strikeNum-mid.strikeNum;if(Math.abs(d1-d2)>Math.max(d1,d2)*0.15)continue;var debit=low.price-2*mid.price+high.price;if(debit<=0)continue;var width=mid.strikeNum-low.strikeNum;var maxProfit=width-debit,maxLoss=debit;if(maxProfit<=0)continue;var rr=maxProfit/maxLoss;if(rr<0.8)continue;var pop=probBetween(S,low.strikeNum+debit,high.strikeNum-debit,T,sig,r);res.push({type:'butterfly',name:'🦋 پروانه',expiry:exp,S:S,legs:[{...low,action:'buy',qty:1},{...mid,action:'sell',qty:2},{...high,action:'buy',qty:1}],net:debit,netType:'debit',maxProfit:maxProfit,maxLoss:maxLoss,rr:rr,T:T,sigma:sig,pop:pop});}});return res;}
+function scanButterfly(chain,S){var byExp={};chain.filter(function(r){return r.type==='c';}).forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]=[];byExp[r.expiry].push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=(calls[0].days||30)/365;var sig=0.55,r=0.25;for(var i=0;i<calls.length;i++)for(var j=i+1;j<calls.length;j++)for(var k=j+1;k<calls.length;k++){var low=calls[i],mid=calls[j],high=calls[k];var d1=mid.strikeNum-low.strikeNum,d2=high.strikeNum-mid.strikeNum;if(Math.abs(d1-d2)>Math.max(d1,d2)*0.2)continue;var debit=low.price-2*mid.price+high.price;if(debit<=0)continue;var width=mid.strikeNum-low.strikeNum;var maxProfit=width-debit,maxLoss=debit;if(maxProfit<=0)continue;var rr=maxProfit/maxLoss;if(rr<0.5)continue;var pop=probBetween(S,low.strikeNum+debit,high.strikeNum-debit,T,sig,r);res.push({type:'butterfly',name:'🦋 پروانه',expiry:exp,S:S,legs:[{...low,action:'buy',qty:1},{...mid,action:'sell',qty:2},{...high,action:'buy',qty:1}],net:debit,netType:'debit',maxProfit:maxProfit,maxLoss:maxLoss,rr:rr,T:T,sigma:sig,pop:pop});}});return res;}
 function scanJade(chain,S){var byExp={};chain.forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]={calls:[],puts:[]};if(r.type==='c')byExp[r.expiry].calls.push(r);else byExp[r.expiry].puts.push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].calls.sort(function(a,b){return a.strikeNum-b.strikeNum;});var puts=byExp[exp].puts.sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=((calls[0]||puts[0]).days||30)/365;var sig=0.55,r=0.25;var otmPuts=puts.filter(function(p){return p.strikeNum<S*0.98;});var otmCalls=calls.filter(function(c){return c.strikeNum>S;});otmPuts.forEach(function(sp){for(var i=0;i<otmCalls.length;i++)for(var j=i+1;j<otmCalls.length;j++){var sc=otmCalls[i],bc=otmCalls[j];var ccr=sc.price-bc.price;if(ccr<=0)continue;var cw=bc.strikeNum-sc.strikeNum;var tc=sp.price+ccr;if(tc<=cw)continue;var ml=cw-tc;var pop=Math.min(probAbove(S,sp.strikeNum-tc,T,sig,r),probBelow(S,sc.strikeNum+tc,T,sig,r));res.push({type:'jade',name:'🦎 Jade',expiry:exp,S:S,legs:[{...sp,action:'sell',qty:1},{...sc,action:'sell',qty:1},{...bc,action:'buy',qty:1}],net:tc,netType:'credit',maxProfit:tc,maxLoss:ml,rr:ml>0?tc/ml:99,T:T,sigma:sig,pop:pop});}});});return res;}
 function scanRatio(chain,S){var byExp={};chain.filter(function(r){return r.type==='c';}).forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]=[];byExp[r.expiry].push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=(calls[0].days||30)/365;var sig=0.55,r=0.25;for(var i=0;i<calls.length;i++)for(var j=i+1;j<calls.length;j++){var buy=calls[i],sell=calls[j];var net=buy.price-2*sell.price;var isCredit=net<0;var absNet=Math.abs(net);var width=sell.strikeNum-buy.strikeNum;if(width<=0)continue;var maxProfit=sell.strikeNum-buy.strikeNum-absNet;if(maxProfit<=0)continue;var beUp=sell.strikeNum+maxProfit;var pop=probBetween(S,buy.strikeNum,beUp,T,sig,r);res.push({type:'ratio',name:'📊 Ratio',expiry:exp,S:S,legs:[{...buy,action:'buy',qty:1},{...sell,action:'sell',qty:2}],net:absNet,netType:isCredit?'credit':'debit',maxProfit:maxProfit,maxLoss:isCredit?'نامحدود':absNet,rr:isCredit?0:maxProfit/absNet,breakEvenUp:beUp,breakEven:beUp,T:T,sigma:sig,pop:pop});}});return res;}
-function scanIronCondor(chain,S){var byExp={};chain.forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]={calls:[],puts:[]};if(r.type==='c')byExp[r.expiry].calls.push(r);else byExp[r.expiry].puts.push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].calls.sort(function(a,b){return a.strikeNum-b.strikeNum;});var puts=byExp[exp].puts.sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=((calls[0]||puts[0]).days||30)/365;var sig=0.55,r=0.25;var otmPuts=puts.filter(function(p){return p.strikeNum<S;});var otmCalls=calls.filter(function(c){return c.strikeNum>S;});for(var a=0;a<otmPuts.length;a++)for(var b=a+1;b<otmPuts.length;b++){var pb=otmPuts[a],ps=otmPuts[b];var pcr=ps.price-pb.price;if(pcr<=0)continue;var pw=ps.strikeNum-pb.strikeNum;for(var c=0;c<otmCalls.length;c++)for(var d=c+1;d<otmCalls.length;d++){var cs=otmCalls[c],cb=otmCalls[d];var ccr=cs.price-cb.price;if(ccr<=0)continue;var cw=cb.strikeNum-cs.strikeNum;var tc=pcr+ccr;var mw=Math.max(pw,cw);var ml=mw-tc;if(ml<=0)continue;var rr=tc/ml;if(rr<0.15)continue;var pop=probBetween(S,ps.strikeNum-tc,cs.strikeNum+tc,T,sig,r);res.push({type:'ironcondor',name:'🦅 Iron Condor',expiry:exp,S:S,legs:[{...pb,action:'buy',qty:1},{...ps,action:'sell',qty:1},{...cs,action:'sell',qty:1},{...cb,action:'buy',qty:1}],net:tc,netType:'credit',maxProfit:tc,maxLoss:ml,rr:rr,T:T,sigma:sig,pop:pop});}}});return res;}
+function scanIronCondor(chain,S){var byExp={};chain.forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]={calls:[],puts:[]};if(r.type==='c')byExp[r.expiry].calls.push(r);else byExp[r.expiry].puts.push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].calls.sort(function(a,b){return a.strikeNum-b.strikeNum;});var puts=byExp[exp].puts.sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=((calls[0]||puts[0]).days||30)/365;var sig=0.55,r=0.25;var otmPuts=puts.filter(function(p){return p.strikeNum<S;});var otmCalls=calls.filter(function(c){return c.strikeNum>S;});for(var a=0;a<otmPuts.length;a++)for(var b=a+1;b<otmPuts.length;b++){var pb=otmPuts[a],ps=otmPuts[b];var pcr=ps.price-pb.price;if(pcr<=0)continue;var pw=ps.strikeNum-pb.strikeNum;for(var c=0;c<otmCalls.length;c++)for(var d=c+1;d<otmCalls.length;d++){var cs=otmCalls[c],cb=otmCalls[d];var ccr=cs.price-cb.price;if(ccr<=0)continue;var cw=cb.strikeNum-cs.strikeNum;var tc=pcr+ccr;var mw=Math.max(pw,cw);var ml=mw-tc;if(ml<=0)continue;var rr=tc/ml;if(rr<0.1)continue;var pop=probBetween(S,ps.strikeNum-tc,cs.strikeNum+tc,T,sig,r);res.push({type:'ironcondor',name:'🦅 Iron Condor',expiry:exp,S:S,legs:[{...pb,action:'buy',qty:1},{...ps,action:'sell',qty:1},{...cs,action:'sell',qty:1},{...cb,action:'buy',qty:1}],net:tc,netType:'credit',maxProfit:tc,maxLoss:ml,rr:rr,T:T,sigma:sig,pop:pop});}}});return res;}
 function renderAdvanced(list){var el=document.getElementById('advList');if(!list.length){el.innerHTML='<div class="empty">فرصتی نیست</div>';return;}var html='<div class="info-box">📊 '+list.length+' استراتژی</div>';window._ADV_RESULTS=list;list.forEach(function(sp,idx){var score=sp.winScore||{total:0,grade:'F'};var gc='grade-'+score.grade.toLowerCase();var pc=(sp.pop||0)>=0.65?'#4ade80':(sp.pop||0)>=0.5?'#facc15':'#f87171';html+='<div class="strat-card '+gc+'"><div class="strat-head"><div class="strat-name">'+sp.name+'</div><div class="strat-badges"><span class="badge '+(sp.netType==='credit'?'credit':'debit')+'">'+(sp.netType==='credit'?'اعتباری':'بدهی')+'</span><span class="badge grade-'+score.grade.toLowerCase()+'">'+score.grade+'</span></div></div>';html+='<div style="font-size:10px;color:#94a3b8;margin-bottom:6px">سررسید: <b style="color:#a855f7">'+sp.expiry+'</b> • S: <b style="color:#38bdf8">'+sp.S.toLocaleString('fa-IR')+'</b></div>';html+='<div class="strat-score"><div class="score-box"><div class="l">PoP</div><div class="v" style="color:'+pc+'">'+((sp.pop||0)*100).toFixed(0)+'٪</div></div><div class="score-box"><div class="l">R/R</div><div class="v b">'+((sp.rr||0)>=99?'∞':(sp.rr||0).toFixed(2))+'</div></div><div class="score-box"><div class="l">سود</div><div class="v g">'+Math.round(sp.maxProfit).toLocaleString('fa-IR')+'</div></div><div class="score-box"><div class="l">ضرر</div><div class="v r">'+(typeof sp.maxLoss==='number'?Math.round(sp.maxLoss).toLocaleString('fa-IR'):sp.maxLoss)+'</div></div></div>';html+='<div class="strat-legs">';sp.legs.forEach(function(l){var isBuy=l.action==='buy';html+='<div class="strat-leg '+(isBuy?'buy':'sell')+'"><div class="info"><span class="leg-tag '+(isBuy?'buy':'sell')+'">'+(isBuy?'خرید':'فروش')+'</span>'+(l.qty&&l.qty>1?'<b style="color:#facc15">×'+l.qty+'</b>':'')+'استرایک '+l.strikeNum.toLocaleString('fa-IR')+'</div><span class="price">'+parseInt(l.price).toLocaleString('fa-IR')+'</span></div>';});html+='</div>';html+='<div style="margin-top:8px;background:#0b1120;border-radius:6px;height:8px;overflow:hidden"><div style="height:100%;width:'+score.total+'%;background:linear-gradient(90deg,'+(score.grade==='A'?'#4ade80':score.grade==='B'?'#84cc16':score.grade==='C'?'#facc15':'#f97316')+')"></div></div>';html+='<div class="strat-actions"><button class="btn-payoff" onclick="showPayoff(window._ADV_RESULTS['+idx+'])">📈 Payoff</button><button class="btn-greeks" onclick="showGreeksModal(window._ADV_RESULTS['+idx+'])">📐 Greeks</button></div></div>';});el.innerHTML=html;}
 
 function checkAlerts(){try{var all=[];['bullCall','bearCall','bullPut','bearPut'].forEach(function(k){SPREADS[k].forEach(function(s){all.push(s);});});var best=all.filter(function(s){return s.pop>=0.65&&s.rr>=0.5;});if(best.length>0)notifySpread(best[0]);}catch(e){}}
