@@ -1,0 +1,25 @@
+{
+  "appId": "ir.optionscanner.app",
+  "appName": "اسکنر آپشن",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": [
+      "cdn.tsetmc.com",
+      "*.tsetmc.com",
+      "corsproxy.io",
+      "api.allorigins.win",
+      "api.codetabs.com",
+      "generativelanguage.googleapis.com",
+      "api.openai.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true,
+    "backgroundColor": "#0b1120"
+  }
+}
