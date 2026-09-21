@@ -968,6 +968,78 @@ async function fetchAll(force){
   ALL_DATA = allResults;
   return ALL_DATA;
 }
+  // ═══════════════════════════════════════════════════════
+// v7.3: تست endpoint های مختلف TSE
+// ═══════════════════════════════════════════════════════
+async function runDebug(){
+  var out=document.getElementById('debugOutput');
+  var log=[];
+  function add(line,cls){ log.push('<span class="'+(cls||'')+'">'+line+'</span>'); out.innerHTML=log.join('\n'); out.scrollTop=out.scrollHeight; }
+  try{
+    add('🔍 Debug v7.3 — تست endpoint ها', 'info');
+    add('', '');
+
+    // تست paperType=6
+    add('━━━ paperType=6 ━━━', 'info');
+    try{
+      var u6='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&withBestLimits=false&hEven=0&RefID=0';
+      var d6=await fetchWithProxies(u6);
+      var c6=d6.marketwatch||[];
+      add('تعداد: '+c6.length, c6.length>0?'good':'bad');
+      var call6=0,put6=0,other6=0;
+      c6.forEach(function(x){
+        var l=x.lvc||'';
+        if(l.indexOf('اختیارف')!==-1)put6++;
+        else if(l.indexOf('اختیارخ')!==-1)call6++;
+        else other6++;
+      });
+      add('CALL: '+call6+' | PUT: '+put6+' | other: '+other6, '');
+      add('نمونه 5:', 'dim');
+      c6.slice(0,5).forEach(function(x){add('  '+x.lvc, 'dim');});
+    }catch(e){add('❌ خطا: '+e.message, 'bad');}
+    add('', '');
+
+    // تست paperType=7
+    add('━━━ paperType=7 ━━━', 'info');
+    try{
+      var u7='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=7&withBestLimits=false&hEven=0&RefID=0';
+      var d7=await fetchWithProxies(u7);
+      var c7=d7.marketwatch||[];
+      add('تعداد: '+c7.length, c7.length>0?'good':'bad');
+      add('نمونه 5:', 'dim');
+      c7.slice(0,5).forEach(function(x){add('  '+(x.lvc||'?'), 'dim');});
+    }catch(e){add('❌ خطا: '+e.message, 'bad');}
+    add('', '');
+
+    // تست paperType=8
+    add('━━━ paperType=8 ━━━', 'info');
+    try{
+      var u8='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=8&withBestLimits=false&hEven=0&RefID=0';
+      var d8=await fetchWithProxies(u8);
+      var c8=d8.marketwatch||[];
+      add('تعداد: '+c8.length, c8.length>0?'good':'bad');
+      add('نمونه 5:', 'dim');
+      c8.slice(0,5).forEach(function(x){add('  '+(x.lvc||'?'), 'dim');});
+    }catch(e){add('❌ خطا: '+e.message, 'bad');}
+    add('', '');
+
+    // بدون فیلتر paperTypes
+    add('━━━ همه paperTypes (بدون فیلتر) ━━━', 'info');
+    try{
+      var uAll='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?withBestLimits=false&hEven=0&RefID=0';
+      var dAll=await fetchWithProxies(uAll);
+      var cAll=dAll.marketwatch||[];
+      add('تعداد: '+cAll.length, cAll.length>0?'good':'bad');
+      var putAll=0;
+      cAll.forEach(function(x){ if((x.lvc||'').indexOf('اختیارف')!==-1)putAll++; });
+      add('تعداد PUT (اختیارف): '+putAll, putAll>0?'good':'bad');
+      add('نمونه 10:', 'dim');
+      cAll.slice(0,10).forEach(function(x){add('  '+(x.lvc||'?'), 'dim');});
+    }catch(e){add('❌ خطا: '+e.message, 'bad');}
+    add('', '');
+    add('✅ تمام', 'good');
+  }catch(e){ add('❌ خطا کلی: '+e.message, 'bad'); }
+}
 </script>
 </body>
 </html>
