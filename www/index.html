@@ -864,6 +864,85 @@ window.addEventListener('load',async function(){
     try{await fetchBasePrice('خود');renderBaseCard('baseCardScanner','خود');await runScan();}catch(e){console.error(e);}
   },500);
 });
+  // ═══════════════════════════════════════════════════════
+// v7.2: Fix parseLvc (detect by content) + Debug پیشرفته
+// ═══════════════════════════════════════════════════════
+function parseLvc(lvc){
+  var r={type:'c',strike:'',expiry:'',strikeNum:0};
+  if(!lvc)return r;
+  var lvcN = lvc.replace(/[- \u200c]/g,'');
+  // PUT detection
+  if(lvcN.indexOf('اختیارف') !== -1) r.type='p';
+  else if(lvc.indexOf('ط') === 0) r.type='p';
+  // CALL detection
+  else if(lvcN.indexOf('اختیارخ') !== -1) r.type='c';
+  else if(lvc.indexOf('ض') === 0) r.type='c';
+  // استخراج با محتوا: تاریخ شامل / و استرایک فقط عدد
+  var parts = lvc.split('-').map(function(p){return p.trim();}).filter(function(p){return p.length>0;});
+  for(var i=0;i<parts.length;i++){
+    if(parts[i].indexOf('/') !== -1){
+      r.expiry = parts[i];
+    } else if(/^\d+$/.test(parts[i]) && parts[i].length < 8){
+      if(r.strikeNum === 0){
+        r.strike = parts[i];
+        r.strikeNum = parseInt(parts[i]) || 0;
+      }
+    }
+  }
+  return r;
+}
+
+// ═══════════════════════════════════════════════════════
+// Debug v7.2 — با پیشوندهای کامل
+// ═══════════════════════════════════════════════════════
+async function runDebug(){
+  var out=document.getElementById('debugOutput');
+  var log=[];
+  function add(line,cls){ log.push('<span class="'+(cls||'')+'">'+line+'</span>'); out.innerHTML=log.join('\n'); out.scrollTop=out.scrollHeight; }
+  try{
+    add('🔍 Debug v7.2', 'info');
+    add('', '');
+    ALL_DATA=[];
+    var watch = await fetchAll(true);
+    add('کل قراردادهای TSE: '+watch.length, 'good');
+    add('', '');
+    add('━━━ پیشوندها (top 30) ━━━', 'info');
+    var prefixes={};
+    watch.forEach(function(x){
+      var lvc=x.lvc||'';
+      var m=lvc.match(/^([^\d]+)/);
+      if(m){
+        var p=m[1].replace(/[- \u200c]/g,'').trim();
+        if(!prefixes[p])prefixes[p]=[];
+        prefixes[p].push(lvc);
+      }
+    });
+    var sorted = Object.keys(prefixes).sort(function(a,b){return prefixes[b].length - prefixes[a].length;});
+    sorted.slice(0,30).forEach(function(p){
+      add('  «'+p+'» → '+prefixes[p].length, '');
+    });
+    add('', '');
+    add('━━━ CALL/PUT هر نماد ━━━', 'info');
+    var syms=Object.keys(SYMBOL_MAP);
+    for(var i=0;i<syms.length;i++){
+      var sym=syms[i];
+      var data=filterBySymbol(watch, sym);
+      var calls=0,puts=0;
+      data.forEach(function(r){ if(r.type==='c')calls++; else if(r.type==='p')puts++; });
+      add('«'+sym+'» CALL: '+calls+' | PUT: '+puts, (puts>0?'good':'warn'));
+    }
+    add('', '');
+    add('━━━ نمونه خودرو ━━━', 'info');
+    var selfData = watch.filter(function(x){return (x.lvc||'').indexOf('خودرو')!==-1;});
+    selfData.slice(0,10).forEach(function(x){
+      var p = parseLvc(x.lvc);
+      add('  '+x.lvc, 'dim');
+      add('    → '+p.type+' strike='+p.strikeNum+' exp='+p.expiry, 'dim');
+    });
+    add('', '');
+    add('✅ تمام', 'good');
+  }catch(e){ add('❌ خطا: '+e.message, 'bad'); }
+}
 </script>
 </body>
 </html>
