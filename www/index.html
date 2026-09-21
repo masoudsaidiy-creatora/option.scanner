@@ -1129,6 +1129,145 @@ const pop = calculatePoP(stockPrice, buyStrike, sellStrike, item.lva);
 const kelly = calculateKelly(metrics.rr, pop);
 const expectancy = calculateExpectancy(pop, metrics.maxProfit, metrics.maxLoss);
 */
+  // ═══════════════════════════════════════════════════════
+// v8.1: قیمت درست از py + maxLoss واقعی
+// ═══════════════════════════════════════════════════════
+
+// فیلتر نماد با قیمت درست
+function filterBySymbol(watch, sym){
+  var info = SYMBOL_MAP[sym]; if(!info) return [];
+  var kw = info.optionKeyword || sym;
+  var results = [];
+  for(var i=0;i<watch.length;i++){
+    var item = watch[i];
+    var lvc = item.lvc || '';
+    var lva = item.lva || '';
+    if(lvc.indexOf(kw) === -1) continue;
+    var isOpt = lvc.indexOf('اختیار') !== -1 || lva.indexOf('ض') !== -1 || lva.indexOf('ط') !== -1;
+    if(!isOpt) continue;
+    var p = parseLvc(lvc, lva);
+    if(p.type === '?') continue;
+    // 🎯 قیمت درست: py اول، بعد pDrCotVal
+    var price = item.py || item.pDrCotVal || item.pcl || item.pdv || 0;
+    if(!price) continue;
+    var volume = item.zTotTran || item.qtj || item.qto || 0;
+    results.push({
+      code:lva, raw:lvc, type:p.type, strike:p.strike, strikeNum:p.strikeNum,
+      expiry:p.expiry, price:price, volume:volume,
+      baseSymbol:sym, days:daysToExpiry(p.expiry)
+    });
+  }
+  return results;
+}
+
+// محاسبه maxLoss با فیلتر بهتر
+function findSpreads(){
+  SPREADS = {bullCall:[],bearCall:[],bullPut:[],bearPut:[]};
+  var S = getBasePrice(CURRENT_SYMBOL);
+  var mla = S * 50 / 100;  // حداکثر ۵۰٪ قیمت پایه برای ریسک
+  var byExp = {};
+  CHAIN_DATA.forEach(r=>{
+    if(!byExp[r.expiry]) byExp[r.expiry] = {calls:[], puts:[]};
+    if(r.type==='c') byExp[r.expiry].calls.push(r);
+    else if(r.type==='p') byExp[r.expiry].puts.push(r);
+  });
+  Object.keys(byExp).forEach(exp=>{
+    var g = byExp[exp];
+    var calls = g.calls.slice().sort((a,b)=>a.strikeNum-b.strikeNum);
+    var puts = g.puts.slice().sort((a,b)=>a.strikeNum-b.strikeNum);
+    var T = (calls[0]?calls[0].days:puts[0]?puts[0].days:30) / 365;
+    var sig = 0.55, r = 0.25;
+    var i, j;
+    // Bull Call
+    for(i=0;i<calls.length;i++)for(j=i+1;j<calls.length;j++){
+      var b=calls[i], s=calls[j], d=b.price-s.price;
+      if(d<=0) continue;
+      var w = s.strikeNum-b.strikeNum; if(w<=0) continue;
+      var mp=w-d, ml=d;
+      // 🎯 حداقل ریسک ۵٪ قیمت پایه، حداکثر ۵۰٪
+      if(mp<=0 || ml<=0) continue;
+      if(ml < S*0.005 || ml > mla) continue;
+      var rr = mp/ml; if(rr<0.2) continue;
+      var be = b.strikeNum+d;
+      SPREADS.bullCall.push({type:'bull_call_spread',name:'کال اسپرد صعودی',bias:'bull',netType:'debit',expiry:exp,legs:[{...b,action:'buy'},{...s,action:'sell'}],net:d,width:w,maxProfit:mp,maxLoss:ml,rr:rr,breakEven:be,safetyPct:(S-be)/S*100,S:S,pop:probAbove(S,be,T,sig,r),T:T,sigma:sig});
+    }
+    // Bear Put
+    for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){
+      var s2=puts[i], b2=puts[j], d2=b2.price-s2.price;
+      if(d2<=0) continue;
+      var w2 = b2.strikeNum-s2.strikeNum; if(w2<=0) continue;
+      var mp2=w2-d2, ml2=d2;
+      if(mp2<=0 || ml2<=0) continue;
+      if(ml2 < S*0.005 || ml2 > mla) continue;
+      var rr2 = mp2/ml2; if(rr2<0.2) continue;
+      var be2 = b2.strikeNum-d2;
+      SPREADS.bearPut.push({type:'bear_put_spread',name:'پوت اسپرد نزولی',bias:'bear',netType:'debit',expiry:exp,legs:[{...b2,action:'buy'},{...s2,action:'sell'}],net:d2,width:w2,maxProfit:mp2,maxLoss:ml2,rr:rr2,breakEven:be2,safetyPct:(S-be2)/S*100,S:S,pop:probBelow(S,be2,T,sig,r),T:T,sigma:sig});
+    }
+    // Bull Put
+    for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){
+      var bl=puts[i], sh=puts[j], cr=sh.price-bl.price;
+      if(cr<=0) continue;
+      var w3 = sh.strikeNum-bl.strikeNum; if(w3<=0) continue;
+      var mp3=cr, ml3=w3-cr;
+      if(mp3<=0 || ml3<=0) continue;
+      if(ml3 < S*0.005 || ml3 > mla) continue;
+      var rr3 = mp3/ml3; if(rr3<0.2) continue;
+      var be3 = sh.strikeNum-cr;
+      SPREADS.bullPut.push({type:'bull_put_spread',name:'پوت اسپرد صعودی (اعتباری)',bias:'bull',netType:'credit',expiry:exp,legs:[{...bl,action:'buy'},{...sh,action:'sell'}],net:cr,width:w3,maxProfit:mp3,maxLoss:ml3,rr:rr3,breakEven:be3,safetyPct:(S-be3)/S*100,S:S,pop:probAbove(S,be3,T,sig,r),T:T,sigma:sig});
+    }
+    // Bear Call
+    for(i=0;i<calls.length;i++)for(j=i+1;j<calls.length;j++){
+      var sl=calls[i], bh=calls[j], cr2=sl.price-bh.price;
+      if(cr2<=0) continue;
+      var w4 = bh.strikeNum-sl.strikeNum; if(w4<=0) continue;
+      var mp4=cr2, ml4=w4-cr2;
+      if(mp4<=0 || ml4<=0) continue;
+      if(ml4 < S*0.005 || ml4 > mla) continue;
+      var rr4 = mp4/ml4; if(rr4<0.2) continue;
+      var be4 = sl.strikeNum+cr2;
+      SPREADS.bearCall.push({type:'bear_call_spread',name:'کال اسپرد نزولی (اعتباری)',bias:'bear',netType:'credit',expiry:exp,legs:[{...bh,action:'buy'},{...sl,action:'sell'}],net:cr2,width:w4,maxProfit:mp4,maxLoss:ml4,rr:rr4,breakEven:be4,safetyPct:(be4-S)/S*100,S:S,pop:probBelow(S,be4,T,sig,r),T:T,sigma:sig});
+    }
+  });
+  // مرتب‌سازی
+  ['bullCall','bearCall','bullPut','bearPut'].forEach(k=>{
+    SPREADS[k].forEach(sp=>{ sp.score = (sp.pop||0)*40 + Math.min(sp.rr,2)/2*20 + (sp.netType==='credit'?15:0); });
+    SPREADS[k].sort((a,b)=>(b.score||0)-(a.score||0));
+    SPREADS[k] = SPREADS[k].slice(0,5);
+  });
+}
+
+// Override renderSpreads برای نمایش قیمت‌ها
+function renderSpreads(){
+  var list = document.getElementById('spreadList');
+  var capital = (parseFloat(document.getElementById('capital').value)||100)*1000000;
+  var riskPct = parseFloat(document.getElementById('riskPct').value)||1.5;
+  var maxRisk = capital * riskPct / 100;
+  var all = [];
+  ['bullCall','bearCall','bullPut','bearPut'].forEach(k=>SPREADS[k].forEach(sp=>all.push(sp)));
+  if(!all.length){ list.innerHTML='<div class="empty"><div class="big">🔍</div>اسپردی با شرایط فعلی پیدا نشد</div>'; return; }
+  var html='';
+  all.forEach((sp,idx)=>{
+    var isBull = sp.bias==='bull', bc = isBull?'bull':'bear';
+    // 🎯 Kelly Criterion ساده: حداکثر ۲٪ ریسک
+    var kelly = Math.min(0.02, (sp.pop*sp.rr - (1-sp.pop)) / Math.max(sp.rr, 0.1));
+    var contracts = Math.max(1, Math.floor((capital * Math.max(kelly, 0.005)) / sp.maxLoss));
+    var tr = contracts*sp.maxLoss, tp = contracts*sp.maxProfit;
+    var pC = sp.pop>=0.65?'#4ade80':sp.pop>=0.5?'#facc15':'#f87171';
+    html+='<div class="card" style="padding:10px"><div class="spread-card '+bc+'">';
+    html+='<div class="sp-head"><div class="sp-title">'+(isBull?'🟢':'🔴')+' '+sp.name+'</div><div><span class="sp-bias '+bc+'">'+(isBull?'صعودی':'نزولی')+'</span> <span class="sp-bias '+(sp.netType==='credit'?'credit':'debit')+'">'+(sp.netType==='credit'?'اعتباری':'بدهی')+'</span></div></div>';
+    html+='<div style="font-size:10px;color:#94a3b8;margin-bottom:8px">سررسید: <b style="color:#a855f7">'+sp.expiry+'</b> • S: <b style="color:#38bdf8">'+sp.S.toLocaleString('fa-IR')+'</b> • PoP: <b style="color:'+pC+'">'+(sp.pop*100).toFixed(0)+'٪</b></div>';
+    html+='<div class="sp-legs">';
+    sp.legs.forEach(leg=>{
+      var isBuy = leg.action==='buy';
+      html+='<div class="sp-leg '+(isBuy?'buy':'sell')+'"><div class="sp-leg-lbl">'+(isBuy?'🟢 خرید':'🔴 فروش')+'</div><div class="sp-leg-strike">استرایک '+leg.strikeNum.toLocaleString('fa-IR')+'</div><div class="sp-leg-info">پرمیوم: <b>'+parseInt(leg.price).toLocaleString('fa-IR')+'</b></div></div>';
+    });
+    html+='</div>';
+    html+='<div class="sp-kpis"><div class="sp-kpi"><div class="l">سود</div><div class="v v-g">'+Math.round(sp.maxProfit).toLocaleString('fa-IR')+'</div></div><div class="sp-kpi"><div class="l">ضرر</div><div class="v v-r">'+Math.round(sp.maxLoss).toLocaleString('fa-IR')+'</div></div><div class="sp-kpi"><div class="l">R/R</div><div class="v v-y">'+sp.rr.toFixed(2)+'</div></div><div class="sp-kpi"><div class="l">قرارداد</div><div class="v v-b">'+contracts+'</div></div></div>';
+    html+='<div class="sp-foot"><span>ریسک کل: <b style="color:#f87171">'+Math.round(tr).toLocaleString('fa-IR')+'</b></span><span>سود: <b style="color:#4ade80">'+Math.round(tp).toLocaleString('fa-IR')+'</b></span></div>';
+    html+='</div></div>';
+  });
+  list.innerHTML = html;
+}
 </script>
 </body>
 </html>
