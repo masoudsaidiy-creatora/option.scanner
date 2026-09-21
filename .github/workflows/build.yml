@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -48,9 +51,32 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
       
-      - name: Upload APK
+      - name: Rename APK
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk option-scanner-v5.3.apk
+      
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: option-scanner-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: option-scanner-v5.3.apk
           retention-days: 30
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v5.3.${{ github.run_number }}
+          name: اسکنر آپشن v5.3.${{ github.run_number }}
+          body: |
+            🎉 نسخه جدید اسکنر آپشن
+            
+            **ویژگی‌ها:**
+            - اسکن اسپرد (Bull/Bear Call/Put)
+            - قیمت پایه زنده از TSE
+            - Greeks, PoP, Win Score
+            - فیلتر نقدشوندگی
+            - Payoff Diagram
+            - Auto-refresh
+          files: option-scanner-v5.3.apk
+          draft: false
+          prerelease: false
