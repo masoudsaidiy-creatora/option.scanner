@@ -214,7 +214,7 @@ body{background:#0b1120;color:#e2e8f0;padding:10px;padding-bottom:85px;font-size
 
 <div class="head">
 <h1>🧠 اسکنر حرفه‌ای آپشن</h1>
-<p>v6.5 • نرمال‌سازی فارسی + سرچ دقیق + ۴ اسپرد</p>
+<p>v6.6 • Debug پیشرفته برای تشخیص پیشوندها</p>
 <span class="native-badge" id="nativeBadge" style="display:none">📱 APK Native</span>
 </div>
 
@@ -288,8 +288,8 @@ body{background:#0b1120;color:#e2e8f0;padding:10px;padding-bottom:85px;font-size
 <!-- Debug -->
 <div id="p-debug" class="panel">
 <div class="card">
-<h3 style="color:#a3e635;font-size:14px;margin-bottom:10px">🔍 حالت تشخیص (Debug)</h3>
-<p style="font-size:11px;color:#94a3b8;margin-bottom:10px">این صفحه اطلاعات کامل رو نشون می‌ده.</p>
+<h3 style="color:#a3e635;font-size:14px;margin-bottom:10px">🔍 حالت تشخیص (Debug) v6.6</h3>
+<p style="font-size:11px;color:#94a3b8;margin-bottom:10px">این Debug تمام پیشوندهای واقعی TSE رو نشون می‌ده.</p>
 <div class="btns">
 <button class="b3" onclick="runDebug()" id="btnDebug">🔍 تست کامل</button>
 <button class="b2" onclick="document.getElementById('debugOutput').textContent=''">🗑 پاک</button>
@@ -442,13 +442,12 @@ body{background:#0b1120;color:#e2e8f0;padding:10px;padding-bottom:85px;font-size
 
 <script>
 // ═══════════════════════════════════════════════════════
-// 🎯 نرمال‌سازی حروف فارسی (مهم‌ترین تغییر)
 function normalizeFa(s){
   return (s || '').trim()
-    .replace(/ي/g, 'ی')     // ی عربی → ی فارسی
-    .replace(/ك/g, 'ک')     // ک عربی → ک فارسی
-    .replace(/\u200c/g, ' ') // نیم‌فاصله → فاصله
-    .replace(/\s+/g, ' ');   // فاصله‌های اضافی → یه فاصله
+    .replace(/ي/g, 'ی')
+    .replace(/ك/g, 'ک')
+    .replace(/\u200c/g, ' ')
+    .replace(/\s+/g, ' ');
 }
 
 var ALL_DATA=[],ALL_STOCKS=[],CHAIN_DATA=[],SPREADS={bullCall:[],bearCall:[],bullPut:[],bearPut:[]};
@@ -473,22 +472,21 @@ var CORS_PROXIES = window.IS_NATIVE
 var TSE_OPT='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&withBestLimits=false&hEven=0&RefID=0';
 var TSE_STOCK='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=1&withBestLimits=false&hEven=0&RefID=0';
 
-// 🎯 اسم‌های دقیق TSE (نهایی)
 var SYMBOL_MAP = {
-  'خود': { exact: 'ایران خودرو', keywords: ['ایران خودرو'], optionPrefixes: ['اختیارخودرو', 'اختیارفخودرو'] },
-  'ستا': { exact: 'سرمایه گذاری تامین اجتماعی', keywords: ['تامین اجتماعی'], optionPrefixes: ['اختیارشستا', 'اختیارزشستا'] },
-  'شنا': { exact: 'پالایش نفت اصفهان', keywords: ['پالایش نفت اصفهان'], optionPrefixes: ['اختیارشپنا', 'اختیارزشپنا'] },
-  'هرم': { exact: 'صندوق سهامی کاریزما اهرمی', keywords: ['کاریزما اهرمی', 'صندوق سهامی'], optionPrefixes: ['اختیاراهرم', 'اختیارشاهرم', 'اختیارخاهرم'] },
-  'فزر': { exact: 'پویا زرکان آق دره', keywords: ['زرکان آق دره', 'پویا زرکان'], optionPrefixes: ['اختیارفزر', 'اختیارشفزر', 'اختیارخفزر'] },
+  'خود': { exact: 'ایران خودرو', keywords: ['ایران خودرو'], optionPrefixes: ['اختیارخودرو', 'اختیارفخودرو', 'ضخود', 'طخود'] },
+  'ستا': { exact: 'سرمایه گذاری تامین اجتماعی', keywords: ['تامین اجتماعی'], optionPrefixes: ['اختیارشستا', 'اختیارزشستا', 'اختیارخستا', 'اختیارفشستا'] },
+  'شنا': { exact: 'پالایش نفت اصفهان', keywords: ['پالایش نفت اصفهان'], optionPrefixes: ['اختیارشپنا', 'اختیارزشپنا', 'اختیارخشپنا'] },
+  'هرم': { exact: 'صندوق سهامی کاریزما اهرمی', keywords: ['کاریزما', 'اهرمی'], optionPrefixes: ['اختیاراهرم', 'اختیارشاهرم', 'اختیارخاهرم'] },
+  'فزر': { exact: 'پویا زرکان آق دره', keywords: ['زرکان آق دره'], optionPrefixes: ['اختیارفزر', 'اختیارشفزر', 'اختیارخفزر'] },
   'ذوب': { exact: 'ذوب آهن اصفهان', keywords: ['ذوب آهن'], optionPrefixes: ['اختیارذوب', 'اختیارخذوب'] },
-  'ملت': { exact: 'بانک ملت', keywords: ['بانک ملت'], optionPrefixes: ['اختیاروبملت', 'اختیارخوبملت'] },
+  'ملت': { exact: 'بانک ملت', keywords: ['بانک ملت'], optionPrefixes: ['اختیاروبملت', 'اختیارخوبملت', 'اختیارشوبملت'] },
   'جار': { exact: 'بانک تجارت', keywords: ['بانک تجارت'], optionPrefixes: ['اختیاروتجارت', 'اختیارخوتجارت'] },
   'صاد': { exact: 'بانک صادرات ایران', keywords: ['بانک صادرات'], optionPrefixes: ['اختیاروبصادر', 'اختیارخوبصادر'] },
   'فملی': { exact: 'ملی صنایع مس ایران', keywords: ['صنایع مس'], optionPrefixes: ['اختیارفملی', 'اختیارخفملی'] },
   'خار': { exact: 'سایپا', keywords: ['سایپا'], optionPrefixes: ['اختیارخساپا', 'اختیارخسایپا'] }
 };
 
-var BASE_PRICES={'خود':686,'ستا':3560,'شنا':12760,'هرم':716,'فزر':3890,'ذوب':716,'ملت':6990,'جار':2860,'صاد':970,'فملی':26410,'خار':1500};
+var BASE_PRICES={'خود':686,'ستا':3640,'شنا':12760,'هرم':716,'فزر':294100,'ذوب':716,'ملت':1483,'جار':892,'صاد':970,'فملی':24900,'خار':1500};
 
 // ═══════════════════════════════════════════════════════
 function N(x){var a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;var s=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);var t=1/(1+p*x);var y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);return 0.5*(1+s*y);}
@@ -508,9 +506,13 @@ function probBelow(S,K,T,sigma,r){return 1-probAbove(S,K,T,sigma,r);}
 function parseLvc(lvc){
   var r={type:'?',strike:'?',expiry:'?',strikeNum:0};
   if(!lvc)return r;
+  // تشخیص CALL از اختیارخ یا ض
   if(lvc.indexOf('اختیارخ')!==-1)r.type='c';
   else if(lvc.indexOf('اختیارف')!==-1)r.type='p';
+  else if(lvc.indexOf('ض')===0)r.type='c';
+  else if(lvc.indexOf('ط')===0)r.type='p';
   else if(/\d/.test(lvc))r.type='c';
+  // استرایک و سررسید
   var m=lvc.match(/-(\d{4,})-(\d{6,8})/);
   if(m){r.strikeNum=parseInt(m[1])||0;r.strike=m[1];var ex=m[2];if(ex.length===8){r.expiry=ex.substring(0,4)+'/'+ex.substring(4,6)+'/'+ex.substring(6,8);}else{r.expiry=ex;}}
   else{var p=lvc.split('-');if(p.length>=2){r.strike=p[1].trim();r.strikeNum=parseInt(r.strike)||0;}if(p.length>=3)r.expiry=p[2].trim();}
@@ -534,32 +536,25 @@ async function fetchWithProxies(url){
       if(!r.ok)throw new Error('HTTP '+r.status);
       var text=await r.text();
       return JSON.parse(text.replace(/^\uFEFF/,''));
-    }catch(e){}
+    }catch(e){console.warn('Proxy '+CORS_PROXIES[i].name+' fail:',e.message);}
   }
   throw new Error('خطا در دریافت داده');
 }
 async function fetchAll(f){if(ALL_DATA.length&&!f)return ALL_DATA;var d=await fetchWithProxies(TSE_OPT);ALL_DATA=d.marketwatch||[];return ALL_DATA;}
 async function fetchStocks(f){if(ALL_STOCKS.length&&!f)return ALL_STOCKS;var d=await fetchWithProxies(TSE_STOCK);ALL_STOCKS=d.marketwatch||[];return ALL_STOCKS;}
 
-// 🎯 سرچ سهم پایه با نرمال‌سازی
 function findStockBySymbol(stocks, sym){
   var info = SYMBOL_MAP[sym];
   if(!info) return {found: null, matches: []};
   var allMatches = [];
   var normExact = normalizeFa(info.exact);
-
   for(var i=0;i<stocks.length;i++){
     var lvc = (stocks[i].lvc || '').trim();
     var normLvc = normalizeFa(lvc);
     var score = 0;
-
-    // 1. exact match (با نرمال‌سازی)
     if(normLvc === normExact) score = 1000;
-    // 2. startsWith
     else if(normLvc.indexOf(normExact) === 0) score = 500;
-    // 3. شامل exact
     else if(normLvc.indexOf(normExact) !== -1) score = 200;
-    // 4. کلمات کلیدی (AND)
     else if(info.keywords){
       var allMatch = true;
       for(var k=0;k<info.keywords.length;k++){
@@ -567,12 +562,8 @@ function findStockBySymbol(stocks, sym){
       }
       if(allMatch) score = 100;
     }
-
-    if(score > 0){
-      allMatches.push({stock: stocks[i], score: score, lvc: lvc});
-    }
+    if(score > 0){ allMatches.push({stock: stocks[i], score: score, lvc: lvc}); }
   }
-
   allMatches.sort(function(a,b){ return b.score - a.score; });
   return { found: allMatches.length > 0 ? allMatches[0].stock : null, matches: allMatches.slice(0, 10) };
 }
@@ -688,7 +679,6 @@ function findSpreads(){
     var g=byExp[exp];
     var calls=g.calls.slice().sort(function(a,b){return a.strikeNum-b.strikeNum;}),puts=g.puts.slice().sort(function(a,b){return a.strikeNum-b.strikeNum;});
     var i,j,T=(calls[0]?calls[0].days:puts[0]?puts[0].days:30)/365,sig=0.55,r=0.25;
-
     for(i=0;i<calls.length;i++)for(j=i+1;j<calls.length;j++){var b=calls[i],s=calls[j],d=b.price-s.price;if(d<=0)continue;var w=s.strikeNum-b.strikeNum;if(w<=0)continue;var mp=w-d,ml=d;if(mp<=0||ml<=0||ml>mla)continue;var rr=mp/ml;if(rr<0.5)continue;var be=b.strikeNum+d;SPREADS.bullCall.push({type:'bull_call_spread',name:'کال اسپرد صعودی',bias:'bull',netType:'debit',expiry:exp,legs:[{...b,action:'buy'},{...s,action:'sell'}],net:d,width:w,maxProfit:mp,maxLoss:ml,rr:rr,breakEven:be,safetyPct:(S-be)/S*100,S:S,pop:probAbove(S,be,T,sig,r),T:T,sigma:sig});}
     for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){var s2=puts[i],b2=puts[j],d2=b2.price-s2.price;if(d2<=0)continue;var w2=b2.strikeNum-s2.strikeNum;if(w2<=0)continue;var mp2=w2-d2,ml2=d2;if(mp2<=0||ml2<=0||ml2>mla)continue;var rr2=mp2/ml2;if(rr2<0.5)continue;var be2=b2.strikeNum-d2;SPREADS.bearPut.push({type:'bear_put_spread',name:'پوت اسپرد نزولی',bias:'bear',netType:'debit',expiry:exp,legs:[{...b2,action:'buy'},{...s2,action:'sell'}],net:d2,width:w2,maxProfit:mp2,maxLoss:ml2,rr:rr2,breakEven:be2,safetyPct:(S-be2)/S*100,S:S,pop:probBelow(S,be2,T,sig,r),T:T,sigma:sig});}
     for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){var bl=puts[i],sh=puts[j],cr=sh.price-bl.price;if(cr<=0)continue;var w3=sh.strikeNum-bl.strikeNum;if(w3<=0)continue;var mp3=cr,ml3=w3-cr;if(mp3<=0||ml3<=0||ml3>mla)continue;var rr3=mp3/ml3;if(rr3<0.5)continue;var be3=sh.strikeNum-cr;SPREADS.bullPut.push({type:'bull_put_spread',name:'پوت اسپرد صعودی (اعتباری)',bias:'bull',netType:'credit',expiry:exp,legs:[{...bl,action:'buy'},{...sh,action:'sell'}],net:cr,width:w3,maxProfit:mp3,maxLoss:ml3,rr:rr3,breakEven:be3,safetyPct:(S-be3)/S*100,S:S,pop:probAbove(S,be3,T,sig,r),T:T,sigma:sig});}
@@ -750,7 +740,8 @@ function showPayoff(sp){
   document.getElementById('modal').classList.add('on');document.body.style.overflow='hidden';
 }
 
-// DEBUG
+// ═══════════════════════════════════════════════════════
+// DEBUG v6.6 — با پیشوندهای کامل
 var STOCK_SEARCH_TIMEOUT = null;
 async function searchStockLive(query){
   var el = document.getElementById('searchResults');
@@ -777,23 +768,57 @@ async function runDebug(){
   var log=[];
   function add(line,cls){ log.push('<span class="'+(cls||'')+'">'+line+'</span>'); out.innerHTML=log.join('\n'); out.scrollTop=out.scrollHeight; }
   try{
-    add('🔍 شروع تست', 'info');
+    add('🔍 شروع تست — '+new Date().toLocaleTimeString('fa-IR'), 'info');
     add('IS_NATIVE: '+window.IS_NATIVE, window.IS_NATIVE?'good':'warn');
     add('', '');
-    add('━━━ دریافت داده آپشن ━━━', 'info');
+
+    // 1. دریافت داده آپشن
+    add('━━━ ۱. دریافت داده آپشن ━━━', 'info');
+    ALL_DATA=[];
     var watch=await fetchAll(true);
-    add('کل قراردادهای آپشن TSE: '+watch.length, 'good');
+    add('کل قراردادهای آپشن TSE: '+watch.length, watch.length > 100 ? 'good' : 'bad');
     add('', '');
-    add('━━━ تست هر نماد ━━━', 'info');
+
+    // 2. پیشوندهای موجود
+    add('━━━ ۲. پیشوندهای موجود ━━━', 'info');
+    var prefixes={};
+    watch.forEach(function(x){
+      var lvc=x.lvc||'';
+      var m=lvc.match(/^([^\d]+)/);
+      if(m){
+        var prefix=m[1].replace(/[- ]/g,'').trim();
+        if(!prefixes[prefix])prefixes[prefix]=[];
+        prefixes[prefix].push(lvc);
+      }
+    });
+    var sortedPrefixes = Object.keys(prefixes).sort(function(a,b){ return prefixes[b].length - prefixes[a].length; });
+    add('تعداد پیشوندهای یونیک: '+sortedPrefixes.length, 'info');
+    sortedPrefixes.forEach(function(p){
+      add('  «'+p+'» → '+prefixes[p].length+' قرارداد', '');
+      prefixes[p].slice(0,3).forEach(function(lvc){
+        add('      • '+lvc, 'dim');
+      });
+    });
+    add('', '');
+
+    // 3. تست هر نماد
+    add('━━━ ۳. تست هر نماد ━━━', 'info');
     var syms=Object.keys(SYMBOL_MAP);
     for(var i=0;i<syms.length;i++){
       var sym=syms[i];
       var data=filterBySymbol(watch, sym);
       var status=data.length===0?'bad':data.length>=5?'good':'warn';
       add('«'+sym+'» ('+SYMBOL_MAP[sym].exact+') → '+data.length+' قرارداد', status);
+      if(data.length > 0 && data.length <= 3){
+        data.slice(0,3).forEach(function(d){
+          add('      • '+d.raw, 'dim');
+        });
+      }
     }
     add('', '');
-    add('━━━ قیمت پایه (نرمال‌سازی) ━━━', 'info');
+
+    // 4. قیمت پایه
+    add('━━━ ۴. قیمت پایه ━━━', 'info');
     var stocks=await fetchStocks(true);
     add('کل سهام TSE: '+stocks.length, 'good');
     for(var i=0;i<syms.length;i++){
@@ -801,7 +826,7 @@ async function runDebug(){
       var result=findStockBySymbol(stocks, sym);
       if(result.found){
         var p = result.found.pDrCotVal||result.found.pcl||0;
-        add('«'+sym+'» → '+result.found.lvc+' @ '+p+' (امتیاز: '+result.matches[0].score+')', 'good');
+        add('«'+sym+'» → '+result.found.lvc+' @ '+p, 'good');
       }else{
         add('«'+sym+'» → پیدا نشد ❌', 'bad');
       }
@@ -835,7 +860,7 @@ async function runAdvanced(kind){
   hideLoading();
 }
 function calcWinScore(r){var s=0,pop=r.pop||0.5;s+=pop*35;var rr=r.rr||0;if(r.netType==='credit')s+=Math.min(rr,1)*10;else s+=Math.min(rr,2)/2*15;var dte=(r.T||30/365)*365;if(dte>=21&&dte<=45)s+=10;else if(dte>=14&&dte<=60)s+=5;if(r.netType==='credit')s+=10;var mv=Math.min.apply(null,r.legs.map(function(l){return l.volume||0;}));if(mv>=500)s+=15;else if(mv>=100)s+=10;else if(mv>=20)s+=5;s=Math.min(100,Math.max(0,s));var g='F';if(s>=80)g='A';else if(s>=65)g='B';else if(s>=50)g='C';else if(s>=35)g='D';return{total:s,grade:g};}
-function scanButterfly(chain,S){var byExp={};chain.filter(function(r){return r.type==='c';}).forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]=[];byExp[r.expiry].push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=(calls[0].days||30)/365;var sig=0.55,r=0.25;for(var i=0;i<calls.length;i++)for(var j=i+1;j<calls.length;j++)for(var k=j+1;k<calls.length;k++){var low=calls[i],mid=calls[j],high=calls[k];var d1=mid.strikeNum-low.strikeNum,d2=high.strikeNum-mid.strikeNum;if(Math.abs(d1-d2)>Math.max(d1,d2)*0.15)continue;var debit=low.price-2*mid.price+high.price;if(debit<=0)continue;var width=mid.strikeNum-low.strikeNum;var maxProfit=width-debit,maxLoss=debit;if(maxProfit<=0)continue;var rr=maxProfit/maxLoss;if(rr<1)continue;var beLow=low.strikeNum+debit,beHigh=high.strikeNum-debit;var pop=probBetween(S,beLow,beHigh,T,sig,r);res.push({type:'butterfly',name:'🦋 پروانه',expiry:exp,S:S,legs:[{...low,action:'buy',qty:1},{...mid,action:'sell',qty:2},{...high,action:'buy',qty:1}],net:debit,netType:'debit',maxProfit:maxProfit,maxLoss:maxLoss,rr:rr,T:T,sigma:sig,pop:pop});}});return res;}
+function scanButterfly(chain,S){var byExp={};chain.filter(function(r){return r.type==='c';}).forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]=[];byExp[r.expiry].push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=(calls[0].days||30)/365;var sig=0.55,r=0.25;for(var i=0;i<calls.length;i++)for(var j=i+1;j<calls.length;j++)for(var k=j+1;k<calls.length;k++){var low=calls[i],mid=calls[j],high=calls[k];var d1=mid.strikeNum-low.strikeNum,d2=high.strikeNum-mid.strikeNum;if(Math.abs(d1-d2)>Math.max(d1,d2)*0.15)continue;var debit=low.price-2*mid.price+high.price;if(debit<=0)continue;var width=mid.strikeNum-low.strikeNum;var maxProfit=width-debit,maxLoss=debit;if(maxProfit<=0)continue;var rr=maxProfit/maxLoss;if(rr<1)continue;var pop=probBetween(S,low.strikeNum+debit,high.strikeNum-debit,T,sig,r);res.push({type:'butterfly',name:'🦋 پروانه',expiry:exp,S:S,legs:[{...low,action:'buy',qty:1},{...mid,action:'sell',qty:2},{...high,action:'buy',qty:1}],net:debit,netType:'debit',maxProfit:maxProfit,maxLoss:maxLoss,rr:rr,T:T,sigma:sig,pop:pop});}});return res;}
 function scanJade(chain,S){var byExp={};chain.forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]={calls:[],puts:[]};if(r.type==='c')byExp[r.expiry].calls.push(r);else byExp[r.expiry].puts.push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].calls.sort(function(a,b){return a.strikeNum-b.strikeNum;});var puts=byExp[exp].puts.sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=((calls[0]||puts[0]).days||30)/365;var sig=0.55,r=0.25;var otmPuts=puts.filter(function(p){return p.strikeNum<S*0.98;});var otmCalls=calls.filter(function(c){return c.strikeNum>S;});otmPuts.forEach(function(sp){for(var i=0;i<otmCalls.length;i++)for(var j=i+1;j<otmCalls.length;j++){var sc=otmCalls[i],bc=otmCalls[j];var ccr=sc.price-bc.price;if(ccr<=0)continue;var cw=bc.strikeNum-sc.strikeNum;var tc=sp.price+ccr;if(tc<=cw)continue;var ml=cw-tc;var pop=Math.min(probAbove(S,sp.strikeNum-tc,T,sig,r),probBelow(S,sc.strikeNum+tc,T,sig,r));res.push({type:'jade',name:'🦎 Jade',expiry:exp,S:S,legs:[{...sp,action:'sell',qty:1},{...sc,action:'sell',qty:1},{...bc,action:'buy',qty:1}],net:tc,netType:'credit',maxProfit:tc,maxLoss:ml,rr:ml>0?tc/ml:99,T:T,sigma:sig,pop:pop});}});});return res;}
 function scanRatio(chain,S){var byExp={};chain.filter(function(r){return r.type==='c';}).forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]=[];byExp[r.expiry].push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=(calls[0].days||30)/365;var sig=0.55,r=0.25;for(var i=0;i<calls.length;i++)for(var j=i+1;j<calls.length;j++){var buy=calls[i],sell=calls[j];var net=buy.price-2*sell.price;var isCredit=net<0;var absNet=Math.abs(net);var width=sell.strikeNum-buy.strikeNum;if(width<=0)continue;var maxProfit=sell.strikeNum-buy.strikeNum-absNet;if(maxProfit<=0)continue;var beUp=sell.strikeNum+maxProfit;var pop=probBetween(S,buy.strikeNum,beUp,T,sig,r);res.push({type:'ratio',name:'📊 Ratio',expiry:exp,S:S,legs:[{...buy,action:'buy',qty:1},{...sell,action:'sell',qty:2}],net:absNet,netType:isCredit?'credit':'debit',maxProfit:maxProfit,maxLoss:isCredit?'نامحدود':absNet,rr:isCredit?0:maxProfit/absNet,breakEvenUp:beUp,breakEven:beUp,T:T,sigma:sig,pop:pop});}});return res;}
 function scanIronCondor(chain,S){var byExp={};chain.forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]={calls:[],puts:[]};if(r.type==='c')byExp[r.expiry].calls.push(r);else byExp[r.expiry].puts.push(r);});var res=[];Object.keys(byExp).forEach(function(exp){var calls=byExp[exp].calls.sort(function(a,b){return a.strikeNum-b.strikeNum;});var puts=byExp[exp].puts.sort(function(a,b){return a.strikeNum-b.strikeNum;});var T=((calls[0]||puts[0]).days||30)/365;var sig=0.55,r=0.25;var otmPuts=puts.filter(function(p){return p.strikeNum<S;});var otmCalls=calls.filter(function(c){return c.strikeNum>S;});for(var a=0;a<otmPuts.length;a++)for(var b=a+1;b<otmPuts.length;b++){var pb=otmPuts[a],ps=otmPuts[b];var pcr=ps.price-pb.price;if(pcr<=0)continue;var pw=ps.strikeNum-pb.strikeNum;for(var c=0;c<otmCalls.length;c++)for(var d=c+1;d<otmCalls.length;d++){var cs=otmCalls[c],cb=otmCalls[d];var ccr=cs.price-cb.price;if(ccr<=0)continue;var cw=cb.strikeNum-cs.strikeNum;var tc=pcr+ccr;var mw=Math.max(pw,cw);var ml=mw-tc;if(ml<=0)continue;var rr=tc/ml;if(rr<0.2)continue;var beLow=ps.strikeNum-tc,beHigh=cs.strikeNum+tc;var pop=probBetween(S,beLow,beHigh,T,sig,r);res.push({type:'ironcondor',name:'🦅 Iron Condor',expiry:exp,S:S,legs:[{...pb,action:'buy',qty:1},{...ps,action:'sell',qty:1},{...cs,action:'sell',qty:1},{...cb,action:'buy',qty:1}],net:tc,netType:'credit',maxProfit:tc,maxLoss:ml,rr:rr,T:T,sigma:sig,pop:pop});}}});return res;}
@@ -856,7 +881,7 @@ function renderPortfolio(){var s=document.getElementById('portfolioStats'),l=doc
 
 function saveAIKey(){var k=document.getElementById('aiKey').value.trim();if(!k){showToast('خالیه','error');return;}localStorage.setItem('ai_key',k);localStorage.setItem('ai_provider',document.getElementById('aiProvider').value);showToast('✅','success');}
 function clearAIKey(){localStorage.removeItem('ai_key');localStorage.removeItem('ai_provider');document.getElementById('aiKey').value='';document.getElementById('aiResult').innerHTML='';showToast('🗑','warn');}
-async function askAI(kind){var key=localStorage.getItem('ai_key'),provider=localStorage.getItem('ai_provider')||'gemini',sym=document.getElementById('aiSymbol').value,result=document.getElementById('aiResult');if(!key){result.innerHTML='<div class="alert-box">⚠️ کلید API</div>';return;}result.innerHTML='<div class="ai-answer">⏳...</div>';var S=getBasePrice(sym),ctx='نماد: '+sym+'\nقیمت: '+S+'\n';try{if(!CHAIN_DATA.length||CURRENT_SYMBOL!==sym){await fetchBasePrice(sym);var w=await fetchAll();CHAIN_DATA=filterBySymbol(w,sym);CURRENT_SYMBOL=sym;}ctx+='قراردادها: '+CHAIN_DATA.length+'\n';CHAIN_DATA.slice(0,15).forEach(function(r){ctx+='- '+r.type+' '+r.strikeNum+'\n';});}catch(e){}var prompts={analyze:'تحلیل:\n'+ctx,spreads:'اسپرد:\n'+ctx,risk:'ریسک:\n'+ctx,strategy:'استراتژی:\n'+ctx};try{var answer=provider==='gemini'?await callGemini(key,prompts[kind]):await callOpenAI(key,prompts[kind]);result.innerHTML='<div class="ai-answer">'+answer.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>';}catch(e){result.innerHTML='<div class="alert-box">❌ '+e.message+'</div>';}}
+async function askAI(kind){var key=localStorage.getItem('ai_key'),provider=localStorage.getItem('ai_provider')||'gemini',sym=document.getElementById('aiSymbol').value,result=document.getElementById('aiResult');if(!key){result.innerHTML='<div class="alert-box">⚠️ کلید API</div>';return;}result.innerHTML='<div class="ai-answer">⏳...</div>';var S=getBasePrice(sym),ctx='نماد: '+sym+'\nقیمت: '+S+'\n';try{if(!CHAIN_DATA.length||CURRENT_SYMBOL!==sym){await fetchBasePrice(sym);var w=await fetchAll();CHAIN_DATA=filterBySymbol(w,sym);CURRENT_SYMBOL=sym;}ctx+='قراردادها: '+CHAIN_DATA.length+'\n';}catch(e){}var prompts={analyze:'تحلیل:\n'+ctx,spreads:'اسپرد:\n'+ctx,risk:'ریسک:\n'+ctx,strategy:'استراتژی:\n'+ctx};try{var answer=provider==='gemini'?await callGemini(key,prompts[kind]):await callOpenAI(key,prompts[kind]);result.innerHTML='<div class="ai-answer">'+answer.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>';}catch(e){result.innerHTML='<div class="alert-box">❌ '+e.message+'</div>';}}
 async function callGemini(key,prompt){var url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+key;var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json();return d.candidates[0].content.parts[0].text;}
 async function callOpenAI(key,prompt){var r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'user',content:prompt}]})});if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json();return d.choices[0].message.content;}
 
