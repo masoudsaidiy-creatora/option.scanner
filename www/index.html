@@ -802,6 +802,79 @@ async function runDebug(){
     add('✅ تمام', 'good');
   }catch(e){ add('❌ '+e.message, 'bad'); }
 }
+  // ═══════════════════════════════════════════════════════
+// v7.8: پیدا کردن endpoint «ض» و «ط»
+// ═══════════════════════════════════════════════════════
+async function runDebug(){
+  var out = document.getElementById('debugOutput');
+  var log = [];
+  function add(line, cls){ log.push('<span class="'+(cls||'')+'">'+line+'</span>'); out.innerHTML = log.join('\n'); }
+  
+  async function testSearch(q){
+    try{
+      var d = await fetchWithProxies('https://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/'+encodeURIComponent(q));
+      var list = d.instrumentSearch || d.instruments || [];
+      add('Search «'+q+'» → '+list.length+' نتیجه', list.length>0?'good':'bad');
+      list.slice(0,5).forEach(x=>{
+        var name = x.lVal18AFC || x.lvc || '?';
+        add('  '+name+' | insCode='+x.insCode, 'dim');
+      });
+      return list;
+    }catch(e){
+      add('Search «'+q+'» → ❌ '+e.message, 'bad');
+      return [];
+    }
+  }
+  
+  async function testPaperType(pt){
+    try{
+      var url = 'https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]='+pt+'&withBestLimits=false&hEven=0&RefID=0';
+      var d = await fetchWithProxies(url);
+      var list = d.marketwatch || [];
+      var puts = 0, calls = 0, others = 0;
+      list.forEach(x=>{
+        var lvc = x.lvc || '';
+        if(lvc.indexOf('اختیارخ') !== -1) calls++;
+        else if(lvc.indexOf('اختیارف') !== -1) puts++;
+        else if(lvc.indexOf('آتی') !== -1) puts++;
+        else others++;
+      });
+      if(list.length > 0){
+        add('paperType='+pt+' → '+list.length+' | CALL:'+calls+' PUT:'+puts+' other:'+others, (puts>0||calls>0)?'good':'dim');
+        if(list.length>0 && (calls+puts)>0){
+          add('  نمونه: '+((list[0]||{}).lvc||'?'), 'dim');
+        }
+      }
+    }catch(e){ /* silent */ }
+  }
+  
+  try{
+    add('🔍 Debug v7.8', 'info');
+    add('', '');
+    
+    // 1. Search ض و ط
+    add('━━━ Search «ض» ━━━', 'info');
+    await testSearch('ض');
+    add('', '');
+    add('━━━ Search «ط» ━━━', 'info');
+    await testSearch('ط');
+    add('', '');
+    add('━━━ Search «ضستا» ━━━', 'info');
+    await testSearch('ضستا');
+    add('', '');
+    add('━━━ Search «طستا» ━━━', 'info');
+    await testSearch('طستا');
+    add('', '');
+    
+    // 2. PaperTypes
+    add('━━━ paperType 1..15 ━━━', 'info');
+    for(var pt=1; pt<=15; pt++){
+      await testPaperType(pt);
+    }
+    add('', '');
+    add('✅ تمام', 'good');
+  }catch(e){ add('❌ '+e.message, 'bad'); }
+}
 </script>
 </body>
 </html>
