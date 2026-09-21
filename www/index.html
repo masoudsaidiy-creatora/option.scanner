@@ -7,7 +7,6 @@
 
 <script src="capacitor.js"></script>
 <script>
-// 🚀 تشخیص محیط Native - قبل از هر چیز
 window.IS_NATIVE = false;
 try {
   if (window.Capacitor) {
@@ -214,7 +213,7 @@ body{background:#0b1120;color:#e2e8f0;padding:10px;padding-bottom:85px;font-size
 
 <div class="head">
 <h1>🧠 اسکنر حرفه‌ای آپشن</h1>
-<p>v6.0 • اسپرد • پیشرفته • AI • ژورنال • پرتفو</p>
+<p>v6.1 • اسپرد • پیشرفته • AI • ژورنال • پرتفو</p>
 <span class="native-badge" id="nativeBadge" style="display:none">📱 APK Native</span>
 </div>
 
@@ -413,12 +412,10 @@ body{background:#0b1120;color:#e2e8f0;padding:10px;padding-bottom:85px;font-size
 
 <script>
 // ═══════════════════════════════════════════════════════
-// 🚀 IS_NATIVE از <head> خونده می‌شه
 var ALL_DATA=[],ALL_STOCKS=[],CHAIN_DATA=[],SPREADS={bullCall:[],bearCall:[],bullPut:[],bearPut:[]};
 var CURRENT_SYMBOL='خود',LAST_BASE_INFO={};
 var JOURNAL=[],PORTFOLIO=[];
 
-// نمایش بج Native
 window.addEventListener('DOMContentLoaded',function(){
   if(window.IS_NATIVE){
     var b=document.getElementById('nativeBadge');
@@ -426,8 +423,6 @@ window.addEventListener('DOMContentLoaded',function(){
   }
 });
 
-// ═══════════════════════════════════════════════════════
-// 🔧 CORS - اگه Native هستیم، مستقیم
 var CORS_PROXIES = window.IS_NATIVE
 ? [{name:'native',build:function(u){return u;}}]
 : [
@@ -440,11 +435,21 @@ var CORS_PROXIES = window.IS_NATIVE
 var TSE_OPT='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&withBestLimits=false&hEven=0&RefID=0';
 var TSE_STOCK='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=1&withBestLimits=false&hEven=0&RefID=0';
 
-var SYMBOL_MAP={'خود':{stock:'خودرو',alt:['خودرو','IKCO']},'ستا':{stock:'شستا',alt:['شستا','TSA']},'شنا':{stock:'شپنا',alt:['شپنا','PNES']},'هرم':{stock:'اهرم',alt:['اهرم','ATHR']},'فزر':{stock:'فزر',alt:['فزر']},'ذوب':{stock:'ذوب',alt:['ذوب','ZOB']},'ملت':{stock:'وبملت',alt:['وبملت','ملت']},'ملي':{stock:'وبملي',alt:['وبملي','ملي']}};
+// 🎯 نقشه‌ی دقیق: نماد آپشن → نماد دقیق سهام پایه
+// لوا (lvc) دقیقاً همین باید باشه
+var SYMBOL_MAP = {
+  'خود': { lvc: 'خودرو', alt: ['خودرو'] },
+  'ستا': { lvc: 'شستا', alt: ['شستا'] },
+  'شنا': { lvc: 'شپنا', alt: ['شپنا'] },
+  'هرم': { lvc: 'اهرم', alt: ['اهرم'] },
+  'فزر': { lvc: 'فزر', alt: ['فزر'] },
+  'ذوب': { lvc: 'ذوب', alt: ['ذوب'] },
+  'ملت': { lvc: 'وبملت', alt: ['وبملت'] },
+  'ملي': { lvc: 'وبملي', alt: ['وبملي'] }
+};
 var BASE_PRICES={'خود':697,'ستا':3560,'شنا':1307,'هرم':1850,'فزر':3800,'ذوب':500,'ملت':1532,'ملي':2500};
 
 // ═══════════════════════════════════════════════════════
-// 📐 Black-Scholes
 function N(x){var a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;var s=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);var t=1/(1+p*x);var y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);return 0.5*(1+s*y);}
 function PDF(x){return Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI);}
 function bs(S,K,T,r,sigma,type){
@@ -459,7 +464,6 @@ function probBetween(S,low,high,T,sigma,r){if(T<=0||sigma<=0)return 0;var mu=Mat
 function probAbove(S,K,T,sigma,r){if(T<=0||sigma<=0)return S>K?1:0;var mu=Math.log(S)+(r-sigma*sigma/2)*T,sd=sigma*Math.sqrt(T);return 1-N((Math.log(K)-mu)/sd);}
 function probBelow(S,K,T,sigma,r){return 1-probAbove(S,K,T,sigma,r);}
 
-// ═══════════════════════════════════════════════════════
 function parseLvc(lvc){var r={type:'?',strike:'?',expiry:'?',strikeNum:0};if(!lvc)return r;if(lvc.indexOf('اختیارخ')>=0||lvc.indexOf('ض')===0)r.type='c';else if(lvc.indexOf('اختیارف')>=0||lvc.indexOf('ط')===0)r.type='p';else if(/\d/.test(lvc))r.type='c';var p=lvc.split('-');if(p.length>=2){r.strike=p[1].trim();r.strikeNum=parseInt(r.strike)||0;}if(p.length>=3)r.expiry=p[2].trim();return r;}
 function jalaliToGregorian(jy,jm,jd){var g=[31,28,31,30,31,30,31,31,30,31,30,31],j=[31,31,31,31,31,31,30,30,30,30,30,29];jy=parseInt(jy)-979;jm=parseInt(jm)-1;jd=parseInt(jd)-1;var days=0;for(var i=0;i<jy;i++)days+=365+(i%33===1?1:0);for(var i=0;i<jm;i++)days+=j[i];days+=jd+79;var gy=1600,gd=days;while(true){var leap=(gy%4===0&&gy%100!==0)||gy%400===0,yd=leap?366:365;if(gd<yd)break;gd-=yd;gy++;}var gm=0,leap=(gy%4===0&&gy%100!==0)||gy%400===0;if(leap)g[1]=29;while(gd>=g[gm]){gd-=g[gm];gm++;}return new Date(gy,gm,gd+1);}
 function daysToExpiry(e){if(!e||e==='?')return 30;try{var p=e.split('/');if(p.length!==3)return 30;var d=jalaliToGregorian(parseInt(p[0]),parseInt(p[1]),parseInt(p[2]));return Math.max(1,Math.round((d-new Date())/(1000*60*60*24)));}catch(er){return 30;}}
@@ -487,23 +491,74 @@ async function fetchWithProxies(url){
 async function fetchAll(f){if(ALL_DATA.length&&!f)return ALL_DATA;var d=await fetchWithProxies(TSE_OPT);ALL_DATA=d.marketwatch||[];return ALL_DATA;}
 async function fetchStocks(f){if(ALL_STOCKS.length&&!f)return ALL_STOCKS;var d=await fetchWithProxies(TSE_STOCK);ALL_STOCKS=d.marketwatch||[];return ALL_STOCKS;}
 
+// 🎯 تابع پیدا کردن دقیق سهم پایه
+function findStockBySymbol(stocks, sym){
+  var info = SYMBOL_MAP[sym];
+  if(!info) return null;
+  var candidates = [info.lvc].concat(info.alt);
+  var found = null;
+
+  // مرحله 1: تطبیق دقیق (lvc === candidate)
+  for(var i=0;i<stocks.length;i++){
+    var lvc = (stocks[i].lvc || '').trim();
+    for(var j=0;j<candidates.length;j++){
+      if(lvc === candidates[j].trim()){
+        found = stocks[i];
+        console.log('✅ تطبیق دقیق:', lvc);
+        break;
+      }
+    }
+    if(found) break;
+  }
+
+  // مرحله 2: اگه پیدا نشد، تطبیق شروع با اسم (lvc.startsWith)
+  if(!found){
+    for(var i=0;i<stocks.length;i++){
+      var lvc = (stocks[i].lvc || '').trim();
+      for(var j=0;j<candidates.length;j++){
+        if(lvc.indexOf(candidates[j].trim()) === 0){
+          found = stocks[i];
+          console.log('✅ تطبیق شروع:', lvc);
+          break;
+        }
+      }
+      if(found) break;
+    }
+  }
+
+  // مرحله 3: اگه بازم پیدا نشد، نماد اصلی TSE رو مستقیم چک کن
+  if(!found){
+    // گاهی اسم TSE فرق داره، پس نماد «خودرو» رو دقیق چک می‌کنیم
+    for(var i=0;i<stocks.length;i++){
+      var lvc = (stocks[i].lvc || '').trim();
+      if(lvc === info.lvc){
+        found = stocks[i];
+        console.log('✅ تطبیق مستقیم:', lvc);
+        break;
+      }
+    }
+  }
+
+  return found;
+}
+
 async function fetchBasePrice(sym,force){
   var info=SYMBOL_MAP[sym];if(!info)return null;
   var c=LAST_BASE_INFO[sym];
   if(c&&!force&&(Date.now()-c.ts)<60000)return c;
   try{
-    var stocks=await fetchStocks(force),cands=[info.stock].concat(info.alt),found=null;
-    for(var i=0;i<stocks.length;i++){
-      for(var j=0;j<cands.length;j++){
-        if((stocks[i].lvc||'').indexOf(cands[j])!==-1){found=stocks[i];break;}
-      }
-      if(found)break;
+    var stocks=await fetchStocks(force);
+    var found = findStockBySymbol(stocks, sym);
+    if(!found){
+      console.warn('❌ سهم پایه پیدا نشد برای', sym);
+      return null;
     }
-    if(!found)return null;
     var last=found.pDrCotVal||found.pcl||found.pdv||0,prev=found.py||found.pcp||found.pClosing||0;
     var change=prev?((last-prev)/prev*100):0;
-    var r={sym:sym,stockName:found.lvc||info.stock,price:last,prevClose:prev,changePct:change,isLive:true,ts:Date.now()};
-    LAST_BASE_INFO[sym]=r;return r;
+    var r={sym:sym,stockName:found.lvc||info.lvc,price:last,prevClose:prev,changePct:change,isLive:true,ts:Date.now()};
+    LAST_BASE_INFO[sym]=r;
+    console.log('📊 قیمت پایه:', sym, '=', r.stockName, '→', last);
+    return r;
   }catch(e){console.warn('Base price fail:',e);return null;}
 }
 function getBasePrice(sym){var i=LAST_BASE_INFO[sym];if(i&&i.price>0)return i.price;return BASE_PRICES[sym]||1000;}
@@ -512,7 +567,7 @@ function renderBaseCard(cid,sym){
   var el=document.getElementById(cid);if(!el)return;
   var info=LAST_BASE_INFO[sym],fallback=BASE_PRICES[sym]||1000,price,cp,isLive,sn;
   if(info&&info.price>0){price=info.price;cp=info.changePct;isLive=true;sn=info.stockName;}
-  else{price=fallback;cp=0;isLive=false;sn=(SYMBOL_MAP[sym]&&SYMBOL_MAP[sym].stock)||sym;}
+  else{price=fallback;cp=0;isLive=false;sn=(SYMBOL_MAP[sym]&&SYMBOL_MAP[sym].lvc)||sym;}
   var cls=cp>0.5?'up':cp<-0.5?'down':'flat',arrow=cp>0.5?'▲':cp<-0.5?'▼':'◆',cs=(cp>=0?'+':'')+cp.toFixed(2)+'%';
   el.innerHTML='<div class="base-card '+cls+'"><button class="base-refresh" onclick="refreshBasePrice(\''+sym+'\')">🔄</button><div class="base-head"><div class="base-sym">📊 '+sn+' <small>('+sym+')</small></div><div class="base-change '+cls+'">'+arrow+' '+cs+'</div></div><div class="base-price">'+Math.round(price).toLocaleString('fa-IR')+' <small style="font-size:11px;color:#94a3b8;font-weight:normal">ریال</small></div><div class="base-meta">'+(info&&info.prevClose?'دیروز: <b>'+Math.round(info.prevClose).toLocaleString('fa-IR')+'</b> • ':'')+'منبع: <b>'+(isLive?'TSE زنده':'تقریبی')+'</b></div></div>';
 }
@@ -669,7 +724,6 @@ function showPayoff(sp){
 }
 
 // ═══════════════════════════════════════════════════════
-// ADVANCED
 async function runAdvanced(kind){
   var sym=document.getElementById('advSymbol').value;
   setStatus('advStatus','⏳ اسکن '+kind+'...','info');document.getElementById('advList').innerHTML='';showLoading('اسکن استراتژی‌های پیشرفته...');
@@ -795,7 +849,6 @@ function renderAdvanced(list){
 }
 
 // ═══════════════════════════════════════════════════════
-// ALERTS
 function checkAlerts(){
   try{
     var all=[];['bullCall','bearCall','bullPut','bearPut'].forEach(function(k){SPREADS[k].forEach(function(s){all.push(s);});});
@@ -811,7 +864,6 @@ function notifySpread(sp){
 }
 
 // ═══════════════════════════════════════════════════════
-// JOURNAL + PORTFOLIO
 async function loadStoredData(){
   try{
     if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Preferences){
@@ -849,7 +901,6 @@ function renderPortfolio(){
 }
 
 // ═══════════════════════════════════════════════════════
-// AI
 function saveAIKey(){var k=document.getElementById('aiKey').value.trim(),p=document.getElementById('aiProvider').value;if(!k){showToast('خالیه','error');return;}localStorage.setItem('ai_key',k);localStorage.setItem('ai_provider',p);showToast('✅ ذخیره شد','success');}
 function clearAIKey(){localStorage.removeItem('ai_key');localStorage.removeItem('ai_provider');document.getElementById('aiKey').value='';document.getElementById('aiResult').innerHTML='';showToast('🗑 پاک شد','warn');}
 async function askAI(kind){
