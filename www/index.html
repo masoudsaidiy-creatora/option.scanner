@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>اسکنر حرفه‌ای آپشن</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Tahoma,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:#0b1120;color:#e2e8f0;padding:10px;padding-bottom:85px;font-size:14px;line-height:1.6}
+.head{text-align:center;padding:12px;background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:14px;margin-bottom:10px;border:1px solid #334155}
+.head h1{color:#38bdf8;font-size:15px}
+.head p{color:#94a3b8;font-size:9.5px;margin-top:3px}
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#1e293bee;backdrop-filter:blur(14px);border-top:1px solid #334155;display:grid;grid-template-columns:repeat(5,1fr);padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;cursor:pointer;color:#64748b;border:none;background:none;font-size:9px;min-height:50px;justify-content:center;font-family:Tahoma}
+.nav-item.active{color:#38bdf8}
+.nav-icon{font-size:18px}
+.panel{display:none}.panel.on{display:block}
+.card{background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:14px;padding:12px;margin-bottom:10px;border:2px solid #334155;position:relative}
+.btns{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.btns button{flex:1;min-width:80px;padding:11px;border:none;border-radius:10px;font-weight:bold;font-size:11.5px;color:white;cursor:pointer;font-family:Tahoma;min-height:44px;background:linear-gradient(135deg,#0ea5e9,#6366f1)}
+.input-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.input-row input,.input-row select{flex:1;min-width:0;padding:10px 12px;background:#0f172a;border:1.5px solid #334155;border-radius:9px;color:#e2e8f0;font-size:12.5px;font-family:Tahoma;min-height:42px}
+.status{padding:10px 12px;background:#1e293b;border-radius:9px;margin-bottom:10px;font-size:11px;color:#94a3b8;display:none;line-height:1.7}
+.status.on{display:block}
+.status.success{border-right:4px solid #4ade80;color:#4ade80}
+.status.error{border-right:4px solid #f87171;color:#f87171}
+.status.info{border-right:4px solid #38bdf8;color:#38bdf8}
+.status.warn{border-right:4px solid #facc15;color:#facc15}
+.base-card{background:linear-gradient(135deg,#0f172a,#0c4a6e);border-radius:12px;padding:12px;margin-bottom:10px;border:1.5px solid #0891b2;position:relative}
+.base-card.up{border-color:#16a34a;background:linear-gradient(135deg,#0f172a,#14532d)}
+.base-card.down{border-color:#dc2626;background:linear-gradient(135deg,#0f172a,#7f1d1d)}
+.base-card.flat{border-color:#f59e0b;background:linear-gradient(135deg,#0f172a,#78350f)}
+.base-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.base-sym{font-size:14px;font-weight:bold;color:#e2e8f0}
+.base-sym small{color:#94a3b8;font-size:10px;font-weight:normal}
+.base-price{font-size:22px;font-weight:bold;color:#facc15;direction:ltr}
+.base-change{font-size:12px;font-weight:bold;padding:3px 8px;border-radius:8px;direction:ltr}
+.base-change.up{background:#166534;color:#4ade80}
+.base-change.down{background:#7f1d1d;color:#f87171}
+.base-change.flat{background:#78350f;color:#facc15}
+.base-meta{font-size:10px;color:#94a3b8;margin-top:4px}
+.base-meta b{color:#38bdf8}
+.base-refresh{position:absolute;top:8px;left:8px;background:#0ea5e9;color:white;border:none;border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer}
+.spread-card{background:#0f172a;border-radius:10px;padding:10px;margin-bottom:8px;border-right:4px solid}
+.spread-card.bull{border-color:#4ade80}
+.spread-card.bear{border-color:#f87171}
+.sp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px}
+.sp-title{font-size:13px;font-weight:bold;color:#e2e8f0}
+.sp-bias{font-size:10.5px;font-weight:bold;padding:2px 8px;border-radius:8px}
+.sp-bias.bull{background:#166534;color:#4ade80}
+.sp-bias.bear{background:#7f1d1d;color:#f87171}
+.sp-bias.credit{background:#0c4a6e;color:#38bdf8}
+.sp-bias.debit{background:#78350f;color:#facc15}
+.sp-legs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.sp-leg{background:#0b1120;padding:8px;border-radius:7px;border-right:3px solid}
+.sp-leg.buy{border-color:#4ade80}
+.sp-leg.sell{border-color:#f87171}
+.sp-leg-lbl{font-size:9px;font-weight:bold}
+.sp-leg.buy .sp-leg-lbl{color:#4ade80}
+.sp-leg.sell .sp-leg-lbl{color:#f87171}
+.sp-leg-strike{font-size:13px;font-weight:bold;color:#e2e8f0;margin-top:3px}
+.sp-leg-info{font-size:9.5px;color:#94a3b8;margin-top:3px}
+.sp-leg-info b{color:#facc15}
+.sp-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px}
+.sp-kpi{background:#0b1120;padding:6px 3px;border-radius:6px;text-align:center}
+.sp-kpi .l{font-size:8px;color:#94a3b8}
+.sp-kpi .v{font-size:11px;font-weight:bold;margin-top:2px}
+.v-g{color:#4ade80}.v-r{color:#f87171}.v-y{color:#facc15}.v-b{color:#38bdf8}
+.sp-foot{display:flex;justify-content:space-between;font-size:9.5px;color:#94a3b8;padding-top:6px;border-top:1px solid #1e293b}
+.sp-foot b{color:#38bdf8}
+.table-wrap{overflow-x:auto;border-radius:9px;background:#0f172a}
+.table{width:100%;border-collapse:collapse;font-size:11px;min-width:500px}
+.table th{color:#94a3b8;padding:9px 5px;text-align:center;background:#0b1120;font-weight:normal;font-size:10px;border-bottom:1px solid #334155}
+.table td{padding:9px 5px;text-align:center;border-bottom:1px solid #1e293b;font-size:11px}
+.table tr:hover{background:#1e293b}
+.type-call{color:#38bdf8;font-weight:bold}
+.type-put{color:#c084fc;font-weight:bold}
+.code-cell{font-weight:bold;color:#facc15;font-family:monospace;font-size:11px}
+.expiry-cell{color:#4ade80;font-size:10.5px}
+.price-cell{color:#facc15;font-weight:bold}
+.vol-cell{color:#94a3b8}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.stat{background:#0f172a;border-radius:8px;padding:8px 4px;text-align:center;border:1px solid #334155}
+.stat .l{font-size:9px;color:#94a3b8}
+.stat .v{font-size:14px;font-weight:bold;margin-top:3px}
+.stat .v.b{color:#38bdf8}.stat .v.g{color:#4ade80}.stat .v.y{color:#facc15}.stat .v.r{color:#f87171}
+.greeks-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px}
+.greek-box{background:#0b1120;border-radius:6px;padding:6px 3px;text-align:center;border:1px solid #334155}
+.greek-box .l{font-size:8px;color:#64748b}
+.greek-box .v{font-size:11px;font-weight:bold;margin-top:2px}
+.empty{text-align:center;padding:35px 20px;color:#64748b;font-size:12px}
+.empty .big{font-size:38px;margin-bottom:10px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:200;display:none;overflow-y:auto;padding-bottom:20px}
+.modal.on{display:block}
+.m-box{background:#1e293b;border-radius:16px 16px 0 0;padding:14px;margin-top:20px;min-height:calc(100vh - 20px);border-top:2px solid #38bdf8}
+.cls{position:sticky;top:0;float:left;width:34px;height:34px;border-radius:50%;background:#334155;color:white;border:none;font-size:16px;cursor:pointer;z-index:5;font-family:Tahoma}
+.m-title{color:#38bdf8;font-size:17px;margin:6px 0 4px;clear:both;font-weight:bold}
+.m-sub{color:#94a3b8;font-size:11px;margin-bottom:12px}
+.m-sect{padding:10px;background:#0f172a;border-radius:10px;margin:10px 0;border-right:4px solid #334155}
+.m-sect h4{font-size:11px;margin-bottom:7px;color:#94a3b8}
+.m-kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1e293b;font-size:10.5px}
+.m-kv .lbl{color:#94a3b8}
+.m-kv .val{color:#e2e8f0;font-weight:bold}
+.toast{position:fixed;top:60px;left:10px;right:10px;padding:11px 14px;background:#1e293b;border-radius:10px;border-right:4px solid #38bdf8;z-index:400;font-size:11.5px;box-shadow:0 6px 20px rgba(0,0,0,.5);font-family:Tahoma}
+.toast.success{border-color:#4ade80}
+.toast.error{border-color:#f87171}
+.toast.warn{border-color:#facc15}
+.refresh-toggle{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#0f172a;border-radius:9px;font-size:11px;margin-bottom:8px}
+.switch{position:relative;width:42px;height:22px;background:#334155;border-radius:11px;cursor:pointer;transition:.3s}
+.switch.on{background:#16a34a}
+.switch::after{content:'';position:absolute;top:2px;right:2px;width:18px;height:18px;background:white;border-radius:50%;transition:.3s}
+.switch.on::after{right:22px}
+.countdown{color:#38bdf8;font-weight:bold;font-size:11px}
+.payoff-wrap{background:#0a0f1e;border-radius:8px;padding:8px;margin-top:8px}
+.leg-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:bold;margin-left:3px}
+.leg-tag.buy{background:#166534;color:#4ade80}
+.leg-tag.sell{background:#7f1d1d;color:#f87171}
+.opt-filters{background:#0f172a;border-radius:10px;padding:10px;margin-bottom:10px;border:1px solid #1e293b}
+.opt-filters h4{font-size:11px;color:#38bdf8;margin-bottom:8px}
+.filter-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;color:#94a3b8;border-bottom:1px solid #1e293b}
+.filter-item:last-child{border:none}
+.filter-item input[type="checkbox"]{width:20px;height:20px;accent-color:#38bdf8}
+.filter-item .val{color:#facc15;font-weight:bold;font-size:10px}
+.alert-box{background:#7f1d1d;color:#fecaca;padding:10px;border-radius:8px;font-size:11px;margin-bottom:10px;border-right:4px solid #f87171}
+.conn-status{position:fixed;top:0;left:0;right:0;padding:4px;text-align:center;font-size:10px;font-weight:bold;z-index:500}
+.conn-status.online{background:#166534;color:#4ade80;display:none}
+.conn-status.offline{background:#7f1d1d;color:#fecaca;display:block}
+.loading{position:fixed;inset:0;background:rgba(11,17,32,.95);display:none;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:15px}
+.loading.on{display:flex}
+.spinner{width:50px;height:50px;border:4px solid #1e293b;border-top-color:#38bdf8;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:#38bdf8;font-size:13px}
+</style>
+</head>
+<body>
+<div class="conn-status online" id="connStatus"></div>
+<div class="loading" id="loading"><div class="spinner"></div><div class="loading-text" id="loadingText">...</div></div>
+<div class="head">
+<h1>🧠 اسکنر حرفه‌ای آپشن</h1>
+<p>v5.3 Lite • اسپرد • Greeks • PoP • نقدشوندگی</p>
+</div>
+
+<div id="p-scanner" class="panel on">
+<div class="card">
+<div class="input-row">
+<select id="scanSymbol" onchange="onSymbolChange()">
+<option value="خود">خودرو</option><option value="ستا">شستا</option><option value="شنا">شپنا</option>
+<option value="هرم">اهرم</option><option value="فزر">فزر</option><option value="ذوب">ذوب</option>
+<option value="ملت">بانک ملت</option><option value="ملي">بانک ملی</option>
+<option value="جار">بانک تجارت</option><option value="صاد">بانک صادرات</option>
+</select>
+</div>
+<div class="input-row">
+<input type="number" id="capital" value="100" placeholder="سرمایه (میلیون)">
+<input type="number" id="riskPct" value="1.5" placeholder="ریسک %" step="0.1">
+</div>
+<div class="opt-filters">
+<h4>💧 فیلتر نقدشوندگی</h4>
+<div class="filter-item">
+<span>حداقل حجم هر لگ</span>
+<div><input type="range" id="minVolume" min="0" max="1000" value="20" step="10" style="width:100px" oninput="document.getElementById('minVolumeVal').textContent=this.value"><span class="val" id="minVolumeVal">20</span></div>
+</div>
+<div class="filter-item"><span>فقط ۵ استرایک پرحجم</span><input type="checkbox" id="onlyTopStrikes" checked></div>
+</div>
+<div class="refresh-toggle">
+<div class="switch" id="autoRefreshSwitch" onclick="toggleAutoRefresh()"></div>
+<span>Auto-refresh ۶۰s</span>
+<span class="countdown" id="refreshCountdown"></span>
+</div>
+<div class="btns"><button onclick="runScan()" id="btnScan">🎯 اسکن هوشمند</button></div>
+</div>
+<div id="baseCardScanner"></div>
+<div id="scanStatus" class="status"></div>
+<div id="topStrikersScanner"></div>
+<div id="spreadList"></div>
+</div>
+
+<div id="p-chain" class="panel">
+<div class="card">
+<div class="input-row">
+<select id="chainSymbol" onchange="onSymbolChange()">
+<option value="خود">خودرو</option><option value="ستا">شستا</option><option value="شنا">شپنا</option>
+<option value="هرم">اهرم</option><option value="فزر">فزر</option><option value="ذوب">ذوب</option>
+</select>
+</div>
+<div class="input-row">
+<select id="typeFilter"><option value="all">همه</option><option value="c">CALL</option><option value="p">PUT</option></select>
+<input type="text" id="searchInput" placeholder="🔍 جستجو" oninput="renderChain()">
+</div>
+<div class="input-row">
+<select id="chainSort">
+<option value="strike">مرتب: استرایک</option>
+<option value="volume" selected>مرتب: حجم</option>
+</select>
+</div>
+<button style="width:100%;padding:12px;border:none;border-radius:10px;color:white;font-weight:bold;background:linear-gradient(135deg,#0ea5e9,#6366f1)" onclick="runChain()">📊 بارگذاری</button>
+</div>
+<div id="baseCardChain"></div>
+<div id="chainStatus" class="status"></div>
+<div id="topStrikersChain"></div>
+<div id="chainList"></div>
+</div>
+
+<div id="p-greeks" class="panel">
+<div class="card">
+<h3 style="color:#38bdf8;font-size:13px;margin-bottom:8px">📐 Greeks</h3>
+<div class="input-row">
+<input type="number" id="gS" value="1000" placeholder="قیمت پایه">
+<input type="number" id="gK" value="1000" placeholder="اعمال">
+</div>
+<div class="input-row">
+<input type="number" id="gDays" value="45" placeholder="روز">
+<input type="number" id="gIV" value="55" placeholder="IV %">
+<input type="number" id="gR" value="25" placeholder="نرخ %">
+</div>
+<button style="width:100%;padding:12px;border:none;border-radius:10px;color:white;font-weight:bold;background:linear-gradient(135deg,#0ea5e9,#6366f1)" onclick="calcGreeks()">📊 محاسبه</button>
+<div id="greeksResult"></div>
+</div>
+</div>
+
+<div id="p-chart" class="panel">
+<div class="card">
+<h3 style="color:#38bdf8;font-size:13px;margin-bottom:8px">📈 نمودار</h3>
+<div class="input-row">
+<select id="chartSymbol" onchange="onSymbolChange()">
+<option value="خود">خودرو</option><option value="ستا">شستا</option><option value="شنا">شپنا</option>
+<option value="هرم">اهرم</option>
+</select>
+<select id="chartType"><option value="c">CALL</option><option value="p">PUT</option></select>
+</div>
+<button style="width:100%;padding:12px;border:none;border-radius:10px;color:white;font-weight:bold;background:linear-gradient(135deg,#0ea5e9,#6366f1)" onclick="drawChart()">📊 رسم</button>
+</div>
+<div id="baseCardChart"></div>
+<div id="chartResult"></div>
+</div>
+
+<div id="p-compare" class="panel">
+<div class="card">
+<h3 style="color:#38bdf8;font-size:13px;margin-bottom:8px">⚖️ مقایسه</h3>
+<div class="input-row">
+<select id="cmpSym1"><option value="خود">خودرو</option><option value="ستا">شستا</option></select>
+<select id="cmpSym2"><option value="فزر">فزر</option><option value="ذوب">ذوب</option></select>
+</div>
+<button style="width:100%;padding:12px;border:none;border-radius:10px;color:white;font-weight:bold;background:linear-gradient(135deg,#0ea5e9,#6366f1)" onclick="runCompare()">📊 مقایسه</button>
+</div>
+<div id="cmpResult"></div>
+</div>
+
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+<div class="m-box" id="mBox"></div>
+</div>
+
+<div class="nav">
+<button class="nav-item active" onclick="showTab('scanner',this)"><span class="nav-icon">🔍</span><span>اسکنر</span></button>
+<button class="nav-item" onclick="showTab('chain',this)"><span class="nav-icon">📊</span><span>زنجیره</span></button>
+<button class="nav-item" onclick="showTab('greeks',this)"><span class="nav-icon">📐</span><span>Greeks</span></button>
+<button class="nav-item" onclick="showTab('chart',this)"><span class="nav-icon">📈</span><span>نمودار</span></button>
+<button class="nav-item" onclick="showTab('compare',this)"><span class="nav-icon">⚖️</span><span>مقایسه</span></button>
+</div>
+
+<script>
+var ALL_DATA=[],ALL_STOCKS=[],CHAIN_DATA=[],SPREADS={bullCall:[],bearCall:[],bullPut:[],bearPut:[]};
+var CURRENT_SYMBOL='خود',LAST_BASE_INFO={};
+
+window.IS_NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+var CORS_PROXIES = window.IS_NATIVE
+? [{name:'native',build:function(u){return u;}}]
+: [
+{name:'corsproxy',build:function(u){return 'https://corsproxy.io/?'+encodeURIComponent(u);}},
+{name:'allorigins',build:function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u);}},
+{name:'codetabs',build:function(u){return 'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u);}},
+{name:'direct',build:function(u){return u;}}
+];
+
+var TSE_OPT='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&withBestLimits=false&hEven=0&RefID=0';
+var TSE_STOCK='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=1&withBestLimits=false&hEven=0&RefID=0';
+
+var SYMBOL_MAP={'خود':{stock:'خودرو',alt:['خودرو','IKCO']},'ستا':{stock:'شستا',alt:['شستا','TSA']},'شنا':{stock:'شپنا',alt:['شپنا','PNES']},'هرم':{stock:'اهرم',alt:['اهرم','ATHR']},'فزر':{stock:'فزر',alt:['فزر']},'ذوب':{stock:'ذوب',alt:['ذوب','ZOB']},'ملت':{stock:'وبملت',alt:['وبملت','ملت']},'ملي':{stock:'وبملي',alt:['وبملي','ملي']},'جار':{stock:'وتجارت',alt:['وتجارت','تجارت']},'صاد':{stock:'وبصادر',alt:['وبصادر','صادرات']}};
+var BASE_PRICES={'خود':697,'ستا':3560,'شنا':1307,'هرم':1850,'فزر':3800,'ذوب':500,'ملت':1532,'ملي':2500,'جار':1000,'صاد':2200};
+
+function N(x){var a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;var s=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);var t=1/(1+p*x);var y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);return 0.5*(1+s*y);}
+function PDF(x){return Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI);}
+function bs(S,K,T,r,sigma,type){
+if(T<=0||sigma<=0){var i=type==='c'?Math.max(S-K,0):Math.max(K-S,0);return{price:i,delta:0,gamma:0,theta:0,vega:0,rho:0};}
+var d1=(Math.log(S/K)+(r+sigma*sigma/2)*T)/(sigma*Math.sqrt(T)),d2=d1-sigma*Math.sqrt(T);
+var Nd1=N(d1),Nd2=N(d2),nd1=PDF(d1),price,delta,theta,rho;
+if(type==='c'){price=S*Nd1-K*Math.exp(-r*T)*Nd2;delta=Nd1;theta=(-S*nd1*sigma/(2*Math.sqrt(T))-r*K*Math.exp(-r*T)*Nd2)/365;rho=K*T*Math.exp(-r*T)*Nd2/100;}
+else{price=K*Math.exp(-r*T)*N(-d2)-S*N(-d1);delta=Nd1-1;theta=(-S*nd1*sigma/(2*Math.sqrt(T))+r*K*Math.exp(-r*T)*N(-d2))/365;rho=-K*T*Math.exp(-r*T)*N(-d2)/100;}
+return{price:price,delta:delta,gamma:nd1/(S*sigma*Math.sqrt(T)),theta:theta,vega:S*nd1*Math.sqrt(T)/100,rho:rho};
+}
+function probBetween(S,low,high,T,sigma,r){if(T<=0||sigma<=0)return 0;var mu=Math.log(S)+(r-sigma*sigma/2)*T,sd=sigma*Math.sqrt(T);if(low<=0)low=0.01;return Math.max(0,Math.min(1,N((Math.log(high)-mu)/sd)-N((Math.log(low)-mu)/sd)));}
+function probAbove(S,K,T,sigma,r){if(T<=0||sigma<=0)return S>K?1:0;var mu=Math.log(S)+(r-sigma*sigma/2)*T,sd=sigma*Math.sqrt(T);return 1-N((Math.log(K)-mu)/sd);}
+function probBelow(S,K,T,sigma,r){return 1-probAbove(S,K,T,sigma,r);}
+
+function parseLvc(lvc){var r={type:'?',strike:'?',expiry:'?',strikeNum:0};if(!lvc)return r;
+if(lvc.indexOf('اختیارخ')>=0||lvc.indexOf('ض')===0)r.type='c';else if(lvc.indexOf('اختیارف')>=0||lvc.indexOf('ط')===0)r.type='p';else if(/\d/.test(lvc))r.type='c';
+var parts=lvc.split('-');if(parts.length>=2){r.strike=parts[1].trim();r.strikeNum=parseInt(r.strike)||0;}if(parts.length>=3)r.expiry=parts[2].trim();return r;}
+
+function jalaliToGregorian(jy,jm,jd){var g=[31,28,31,30,31,30,31,31,30,31,30,31],j=[31,31,31,31,31,31,30,30,30,30,30,29];jy=parseInt(jy)-979;jm=parseInt(jm)-1;jd=parseInt(jd)-1;var days=0;for(var i=0;i<jy;i++)days+=365+(i%33===1?1:0);for(var i=0;i<jm;i++)days+=j[i];days+=jd+79;var gy=1600,gd=days;while(true){var leap=(gy%4===0&&gy%100!==0)||gy%400===0,yd=leap?366:365;if(gd<yd)break;gd-=yd;gy++;}var gm=0,leap=(gy%4===0&&gy%100!==0)||gy%400===0;if(leap)g[1]=29;while(gd>=g[gm]){gd-=g[gm];gm++;}return new Date(gy,gm,gd+1);}
+
+function daysToExpiry(expiry){if(!expiry||expiry==='?')return 30;try{var p=expiry.split('/');if(p.length!==3)return 30;var d=jalaliToGregorian(parseInt(p[0]),parseInt(p[1]),parseInt(p[2]));return Math.max(1,Math.round((d-new Date())/(1000*60*60*24)));}catch(e){return 30;}}
+
+function getMoneyness(type,strike,S){if(!S||!strike)return 'ATM';var d=(strike-S)/S;if(type==='c'){if(d<-0.02)return 'ITM';if(d>0.02)return 'OTM';return 'ATM';}else{if(d>0.02)return 'ITM';if(d<-0.02)return 'OTM';return 'ATM';}}
+
+function showToast(msg,type){var el=document.createElement('div');el.className='toast '+(type||'');el.textContent=msg;document.body.appendChild(el);setTimeout(function(){el.remove();},3000);}
+function setStatus(id,msg,type){var el=document.getElementById(id);if(!el)return;el.className='status on '+(type||'info');el.innerHTML=msg;}
+function showLoading(t){document.getElementById('loadingText').textContent=t||'...';document.getElementById('loading').classList.add('on');}
+function hideLoading(){document.getElementById('loading').classList.remove('on');}
+function showTab(name,el){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});document.getElementById('p-'+name).classList.add('on');document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});if(el)el.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
+function closeModal(){document.getElementById('modal').classList.remove('on');document.body.style.overflow='';}
+
+async function fetchWithProxies(url){for(var i=0;i<CORS_PROXIES.length;i++){try{var r=await fetch(CORS_PROXIES[i].build(url),{cache:'no-store',headers:{'Accept':'application/json'}});if(!r.ok)throw new Error('HTTP '+r.status);var text=await r.text();text=text.replace(/^\uFEFF/,'');return JSON.parse(text);}catch(e){}}throw new Error('همه proxyها خطا دادند');}
+
+async function fetchAll(force){if(ALL_DATA.length&&!force)return ALL_DATA;var d=await fetchWithProxies(TSE_OPT);ALL_DATA=d.marketwatch||[];return ALL_DATA;}
+async function fetchStocks(force){if(ALL_STOCKS.length&&!force)return ALL_STOCKS;var d=await fetchWithProxies(TSE_STOCK);ALL_STOCKS=d.marketwatch||[];return ALL_STOCKS;}
+
+async function fetchBasePrice(sym,force){var info=SYMBOL_MAP[sym];if(!info)return null;var c=LAST_BASE_INFO[sym];if(c&&!force&&(Date.now()-c.ts)<60000)return c;try{var stocks=await fetchStocks(force),cands=[info.stock].concat(info.alt),found=null;for(var i=0;i<stocks.length;i++){for(var j=0;j<cands.length;j++){if((stocks[i].lvc||'').indexOf(cands[j])!==-1){found=stocks[i];break;}}if(found)break;}if(!found)return null;var last=found.pDrCotVal||found.pcl||found.pdv||0,prev=found.py||found.pcp||found.pClosing||0;var change=prev?((last-prev)/prev*100):0;var r={sym:sym,stockName:found.lvc||info.stock,price:last,prevClose:prev,changePct:change,isLive:true,ts:Date.now()};LAST_BASE_INFO[sym]=r;return r;}catch(e){return null;}}
+
+function getBasePrice(sym){var i=LAST_BASE_INFO[sym];if(i&&i.price>0)return i.price;return BASE_PRICES[sym]||1000;}
+
+function renderBaseCard(cid,sym){var el=document.getElementById(cid);if(!el)return;var info=LAST_BASE_INFO[sym],fallback=BASE_PRICES[sym]||1000;var price,changePct,isLive,stockName;if(info&&info.price>0){price=info.price;changePct=info.changePct;isLive=true;stockName=info.stockName;}else{price=fallback;changePct=0;isLive=false;stockName=(SYMBOL_MAP[sym]&&SYMBOL_MAP[sym].stock)||sym;}var cls=changePct>0.5?'up':changePct<-0.5?'down':'flat';var arrow=changePct>0.5?'▲':changePct<-0.5?'▼':'◆';var cs=(changePct>=0?'+':'')+changePct.toFixed(2)+'%';el.innerHTML='<div class="base-card '+cls+'"><button class="base-refresh" onclick="refreshBasePrice(\''+sym+'\')">🔄</button><div class="base-head"><div class="base-sym">📊 '+stockName+' <small>('+sym+')</small></div><div class="base-change '+cls+'">'+arrow+' '+cs+'</div></div><div class="base-price">'+Math.round(price).toLocaleString('fa-IR')+' <small style="font-size:11px;color:#94a3b8;font-weight:normal">ریال</small></div><div class="base-meta">'+(info&&info.prevClose?'دیروز: <b>'+Math.round(info.prevClose).toLocaleString('fa-IR')+'</b> • ':'')+'منبع: <b>'+(isLive?'TSE':'Fallback')+'</b></div></div>';}
+
+async function refreshBasePrice(sym){showToast('🔄...','info');var i=await fetchBasePrice(sym,true);if(i)showToast('✅','success');else showToast('⚠️','warn');updateAllBaseCards(sym);}
+function updateAllBaseCards(sym){['baseCardScanner','baseCardChain','baseCardChart'].forEach(function(id){var el=document.getElementById(id);if(el&&el.parentElement.classList.contains('on'))renderBaseCard(id,sym);});}
+
+async function onSymbolChange(){var sym=document.getElementById('scanSymbol').value;CURRENT_SYMBOL=sym;renderBaseCard('baseCardScanner',sym);var i=await fetchBasePrice(sym);if(i)renderBaseCard('baseCardScanner',sym);}
+
+var REFRESH_INTERVAL=60,countdownTimer=null,countdownLeft=0,autoRefreshOn=false;
+function toggleAutoRefresh(){autoRefreshOn=!autoRefreshOn;var sw=document.getElementById('autoRefreshSwitch');if(autoRefreshOn){sw.classList.add('on');startRefresh();}else{sw.classList.remove('on');stopRefresh();}}
+function startRefresh(){stopRefresh();countdownLeft=REFRESH_INTERVAL;updateCountdown();countdownTimer=setInterval(function(){countdownLeft--;updateCountdown();if(countdownLeft<=0){countdownLeft=REFRESH_INTERVAL;refreshData();}},1000);}
+function stopRefresh(){if(countdownTimer)clearInterval(countdownTimer);countdownTimer=null;document.getElementById('refreshCountdown').textContent='';}
+function updateCountdown(){document.getElementById('refreshCountdown').textContent='('+countdownLeft+'s)';}
+async function refreshData(){var p=document.querySelector('.panel.on'),id=p?p.id:'p-scanner';await fetchBasePrice(CURRENT_SYMBOL,true);updateAllBaseCards(CURRENT_SYMBOL);if(id==='p-scanner')await runScan(true);else if(id==='p-chain')await runChain(true);}
+
+function filterBySymbol(watch,sym){var results=[];for(var i=0;i<watch.length;i++){var item=watch[i],lva=item.lva||'',lvc=item.lvc||'';if(lvc.indexOf(sym)===-1)continue;var p=parseLvc(lvc);if(p.type==='?')continue;var price=item.pDrCotVal||item.pcl||item.pdv||0;if(!price)continue;results.push({code:lva,raw:lvc,type:p.type,strike:p.strike,strikeNum:p.strikeNum,expiry:p.expiry,price:price,volume:item.zTotTran||0,baseSymbol:sym,days:daysToExpiry(p.expiry)});}return results;}
+
+function analyzeLiquidity(chain){var groups={};chain.forEach(function(r){var k=r.type+'|'+r.expiry;if(!groups[k])groups[k]=[];groups[k].push(r);});Object.keys(groups).forEach(function(k){var arr=groups[k].slice(),maxVol=Math.max.apply(null,arr.map(function(x){return x.volume;}));arr.sort(function(a,b){return b.volume-a.volume;});arr.forEach(function(r,rank){var vp=maxVol>0?(r.volume/maxVol)*100:0;r.volPct=vp;r.volRank=rank+1;r.volClass=vp>=50?'excellent':vp>=20?'good':vp>=5?'mid':'low';r.groupSize=arr.length;});});}
+
+function renderTopStrikers(cid,chain){var el=document.getElementById(cid);if(!el||!chain.length){if(el)el.innerHTML='';return;}var byExp={};chain.forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]={calls:[],puts:[]};if(r.type==='c')byExp[r.expiry].calls.push(r);else byExp[r.expiry].puts.push(r);});var html='<div class="top-strikers"><h4>⭐ پرحجم‌ترین استرایک‌ها</h4>';Object.keys(byExp).sort(function(a,b){return (byExp[a].calls[0]?byExp[a].calls[0].days:9999)-(byExp[b].calls[0]?byExp[b].calls[0].days:9999);}).forEach(function(exp){var calls=byExp[exp].calls.slice().sort(function(a,b){return b.volume-a.volume;}).slice(0,3),puts=byExp[exp].puts.slice().sort(function(a,b){return b.volume-a.volume;}).slice(0,3);if(!calls.length&&!puts.length)return;html+='<div style="margin-bottom:10px"><div style="font-size:10px;color:#94a3b8;margin-bottom:4px">📅 '+exp+' (DTE: '+(calls[0]?calls[0].days:puts[0]?puts[0].days:'?')+')</div>';calls.forEach(function(c,i){html+='<div style="display:flex;justify-content:space-between;padding:5px 8px;background:#0b1120;border-radius:6px;margin-bottom:3px;font-size:10.5px;border-right:3px solid #38bdf8"><span><b>'+ (i+1) +'</b> CALL '+c.strikeNum.toLocaleString('fa-IR')+' <span style="color:#facc15">'+parseInt(c.price).toLocaleString('fa-IR')+'</span></span><span style="color:#4ade80">'+parseInt(c.volume).toLocaleString('fa-IR')+'</span></div>';});puts.forEach(function(p,i){html+='<div style="display:flex;justify-content:space-between;padding:5px 8px;background:#0b1120;border-radius:6px;margin-bottom:3px;font-size:10.5px;border-right:3px solid #c084fc"><span><b>'+(i+1)+'</b> PUT '+p.strikeNum.toLocaleString('fa-IR')+' <span style="color:#facc15">'+parseInt(p.price).toLocaleString('fa-IR')+'</span></span><span style="color:#4ade80">'+parseInt(p.volume).toLocaleString('fa-IR')+'</span></div>';});html+='</div>';});html+='</div>';el.innerHTML=html;}
+
+async function runScan(silent){var sym=document.getElementById('scanSymbol').value;CURRENT_SYMBOL=sym;var btn=document.getElementById('btnScan');if(!silent){btn.textContent='⏳...';btn.disabled=true;setStatus('scanStatus','⏳ اسکن '+sym+'...','info');showLoading('دریافت داده...');}try{var b=await fetchBasePrice(sym,silent);if(b)renderBaseCard('baseCardScanner',sym);var watch=await fetchAll(silent);CHAIN_DATA=filterBySymbol(watch,sym);if(CHAIN_DATA.length<2){setStatus('scanStatus','⚠️ آپشن کافی نیست ('+CHAIN_DATA.length+')','error');if(!silent){hideLoading();btn.textContent='🎯 اسکن';btn.disabled=false;}return;}analyzeLiquidity(CHAIN_DATA);renderTopStrikers('topStrikersScanner',CHAIN_DATA);findSpreads();renderSpreads();var t=SPREADS.bullCall.length+SPREADS.bearCall.length+SPREADS.bullPut.length+SPREADS.bearPut.length;if(t===0)setStatus('scanStatus','⚠️ اسپرد نقدشونده نیست','warn');else setStatus('scanStatus','✅ '+t+' اسپرد'+(silent?' (auto)':''),'success');}catch(e){setStatus('scanStatus','❌ '+e.message,'error');}if(!silent){hideLoading();btn.textContent='🎯 اسکن هوشمند';btn.disabled=false;}}
+
+function passesLiq(leg){var m=parseFloat(document.getElementById('minVolume').value)||0;return leg.volume>=m;}
+function isTop(leg){if(!document.getElementById('onlyTopStrikes').checked)return true;return leg.volRank<=5||leg.volPct>=20;}
+
+function findSpreads(){SPREADS={bullCall:[],bearCall:[],bullPut:[],bearPut:[]};var S=getBasePrice(CURRENT_SYMBOL),mla=S*5/100;var byExp={};CHAIN_DATA.forEach(function(r){if(!byExp[r.expiry])byExp[r.expiry]={calls:[],puts:[]};if(r.type==='c')byExp[r.expiry].calls.push(r);else if(r.type==='p')byExp[r.expiry].puts.push(r);});Object.keys(byExp).forEach(function(exp){var g=byExp[exp];var calls=g.calls.slice().sort(function(a,b){return a.strikeNum-b.strikeNum;}),puts=g.puts.slice().sort(function(a,b){return a.strikeNum-b.strikeNum;});var i,j,T=(calls[0]?calls[0].days:puts[0]?puts[0].days:30)/365,sig=0.55,r=0.25;
+for(i=0;i<calls.length;i++)for(j=i+1;j<calls.length;j++){var b=calls[i],s=calls[j],d=b.price-s.price;if(d<=0)continue;var w=s.strikeNum-b.strikeNum;if(w<=0)continue;var mp=w-d,ml=d;if(mp<=0||ml<=0||ml>mla)continue;var rr=mp/ml;if(rr<0.5)continue;var be=b.strikeNum+d;SPREADS.bullCall.push({name:'کال اسپرد صعودی',bias:'bull',netType:'debit',expiry:exp,legs:[{...b,action:'buy'},{...s,action:'sell'}],net:d,width:w,maxProfit:mp,maxLoss:ml,rr:rr,breakEven:be,safetyPct:(S-be)/S*100,S:S,pop:probAbove(S,be,T,sig,r),T:T,sigma:sig});}
+for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){var s2=puts[i],b2=puts[j],d2=b2.price-s2.price;if(d2<=0)continue;var w2=b2.strikeNum-s2.strikeNum;if(w2<=0)continue;var mp2=w2-d2,ml2=d2;if(mp2<=0||ml2<=0||ml2>mla)continue;var rr2=mp2/ml2;if(rr2<0.5)continue;var be2=b2.strikeNum-d2;SPREADS.bearPut.push({name:'پوت اسپرد نزولی',bias:'bear',netType:'debit',expiry:exp,legs:[{...b2,action:'buy'},{...s2,action:'sell'}],net:d2,width:w2,maxProfit:mp2,maxLoss:ml2,rr:rr2,breakEven:be2,safetyPct:(S-be2)/S*100,S:S,pop:probBelow(S,be2,T,sig,r),T:T,sigma:sig});}
+for(i=0;i<puts.length;i++)for(j=i+1;j<puts.length;j++){var bl=puts[i],sh=puts[j],cr=sh.price-bl.price;if(cr<=0)continue;var w3=sh.strikeNum-bl.strikeNum;if(w3<=0)continue;var mp3=cr,ml3=w3-cr;if(mp3<=0||ml3<=0||ml3>mla)continue;var rr3=mp3/ml3;if(rr3<0.5)continue;var be3=sh.strikeNum-cr;SPREADS.bullPut.push({name:'پوت اسپرد صعودی (اعتباری)',bias:'bull',netType:'credit',expiry:exp,legs:[{...bl,action:'buy'},{...sh,action:'sell'}],net:cr,width:w3,maxProfit:mp3,maxLoss:ml3,rr:rr3,breakEven:be3,safetyPct:(S-be3)/S*100,S:S,pop:probAbove(S,be3,T,sig,r),T:T,sigma:sig});}
+for(i=0;i<calls.length;i++)for(j=i+1;j<calls.length;j++){var sl=calls[i],bh=calls[j],cr2=sl.price-bh.price;if(cr2<=0)continue;var w4=bh.strikeNum-sl.strikeNum;if(w4<=0)continue;var mp4=cr2,ml4=w4-cr2;if(mp4<=0||ml4<=0||ml4>mla)continue;var rr4=mp4/ml4;if(rr4<0.5)continue;var be4=sl.strikeNum+cr2;SPREADS.bearCall.push({name:'کال اسپرد نزولی (اعتباری)',bias:'bear',netType:'credit',expiry:exp,legs:[{...bh,action:'buy'},{...sl,action:'sell'}],net:cr2,width:w4,maxProfit:mp4,maxLoss:ml4,rr:rr4,breakEven:be4,safetyPct:(be4-S)/S*100,S:S,pop:probBelow(S,be4,T,sig,r),T:T,sigma:sig});}
+});
+['bullCall','bearCall','bullPut','bearPut'].forEach(function(k){SPREADS[k]=SPREADS[k].filter(function(sp){return sp.legs.every(function(l){return passesLiq(l)&&isTop(l);});});SPREADS[k].sort(function(a,b){return (b.rr*0.3+b.pop*0.7)-(a.rr*0.3+a.pop*0.7);});SPREADS[k]=SPREADS[k].slice(0,3);});}
+
+function renderSpreads(){var list=document.getElementById('spreadList'),capital=(parseFloat(document.getElementById('capital').value)||100)*1000000,riskPct=parseFloat(document.getElementById('riskPct').value)||1.5,maxRisk=capital*riskPct/100;var all=[];['bullCall','bearCall','bullPut','bearPut'].forEach(function(k){SPREADS[k].forEach(function(sp){all.push(sp);});});if(!all.length){list.innerHTML='<div class="empty"><div class="big">🔍</div>اسپرد نقدشونده‌ای نیست</div>';return;}var html='';all.forEach(function(sp,idx){var isBull=sp.bias==='bull',bc=isBull?'bull':'bear';var contracts=Math.max(1,Math.floor(maxRisk/sp.maxLoss));var tr=contracts*sp.maxLoss,tp=contracts*sp.maxProfit;var sC=sp.safetyPct>=1?'#4ade80':sp.safetyPct>=0?'#facc15':'#f87171';var pC=sp.pop>=0.65?'#4ade80':sp.pop>=0.5?'#facc15':'#f87171';var mv=Math.min.apply(null,sp.legs.map(function(l){return l.volume;}));var vl=mv>=500?'🟢 نقد بالا':mv>=100?'🟡 نقد خوب':mv>=20?'🟠 متوسط':'🔴 کم‌حجم';html+='<div class="card" style="padding:10px"><div class="spread-card '+bc+'"><div class="sp-head"><div class="sp-title">'+(isBull?'🟢':'🔴')+' '+sp.name+'</div><div><span class="sp-bias '+bc+'">'+(isBull?'صعودی':'نزولی')+'</span> <span class="sp-bias '+(sp.netType==='credit'?'credit':'debit')+'">'+(sp.netType==='credit'?'اعتباری':'بدهی')+'</span></div></div><div style="font-size:10px;color:#94a3b8;margin-bottom:8px">سررسید: <b style="color:#a855f7">'+sp.expiry+'</b> • S: <b style="color:#38bdf8">'+sp.S.toLocaleString('fa-IR')+'</b> • PoP: <b style="color:'+pC+'">'+(sp.pop*100).toFixed(0)+'٪</b> • حاشیه: <b style="color:'+sC+'">'+sp.safetyPct.toFixed(1)+'٪</b></div><div style="text-align:center;margin-bottom:8px"><span style="background:#0b1120;padding:3px 10px;border-radius:8px;font-size:10px;font-weight:bold;color:#38bdf8">💧 '+vl+'</span></div><div class="sp-legs">';sp.legs.forEach(function(leg){var isBuy=leg.action==='buy';var vi=leg.volume>=500?'🟢':leg.volume>=100?'🟡':leg.volume>=20?'🟠':'🔴';var rb=leg.volRank<=3?'⭐':'';html+='<div class="sp-leg '+(isBuy?'buy':'sell')+'"><div class="sp-leg-lbl">'+(isBuy?'🟢 خرید':'🔴 فروش')+' '+rb+' #'+(leg.volRank||'-')+'</div><div class="sp-leg-strike">استرایک '+leg.strikeNum.toLocaleString('fa-IR')+'</div><div class="sp-leg-info">پرمیوم: <b>'+parseInt(leg.price).toLocaleString('fa-IR')+'</b></div><div class="sp-leg-info">حجم: <b style="color:'+(leg.volume>=500?'#4ade80':leg.volume>=100?'#facc15':'#f87171')+'">'+vi+' '+parseInt(leg.volume).toLocaleString('fa-IR')+'</b></div></div>';});html+='</div><div class="sp-kpis"><div class="sp-kpi"><div class="l">حداکثر سود</div><div class="v v-g">'+Math.round(sp.maxProfit).toLocaleString('fa-IR')+'</div></div><div class="sp-kpi"><div class="l">حداکثر ضرر</div><div class="v v-r">'+Math.round(sp.maxLoss).toLocaleString('fa-IR')+'</div></div><div class="sp-kpi"><div class="l">R/R</div><div class="v v-y">'+sp.rr.toFixed(2)+'</div></div><div class="sp-kpi"><div class="l">قرارداد</div><div class="v v-b">'+contracts+'</div></div></div><div class="sp-foot"><span>ریسک: <b style="color:#f87171">'+Math.round(tr).toLocaleString('fa-IR')+'</b></span><span>سود: <b style="color:#4ade80">'+Math.round(tp).toLocaleString('fa-IR')+'</b></span></div><button style="width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:white;font-weight:bold;font-size:11px;cursor:pointer" onclick="showPayoff(window._SPREADS['+idx+'])">📈 Payoff</button></div></div>';});list.innerHTML=html;window._SPREADS=all;}
+
+function calcStratGreeks(sp){var S=sp.S,T=sp.T||30/365,sig=sp.sigma||0.55,r=0.25;var net={delta:0,gamma:0,theta:0,vega:0,rho:0};sp.legs.forEach(function(l){var q=l.qty||1,sg=l.action==='buy'?1:-1;var g=bs(S,l.strikeNum,T,r,sig,l.type);net.delta+=sg*q*g.delta;net.gamma+=sg*q*g.gamma;net.theta+=sg*q*g.theta;net.vega+=sg*q*g.vega;net.rho+=sg*q*g.rho;});return net;}
+
+function showPayoff(sp){if(!sp)return;var S=sp.S,lo=S*0.7,hi=S*1.3,steps=80,pts=[],mn=Infinity,mx=-Infinity;for(var i=0;i<=steps;i++){var ST=lo+(hi-lo)*i/steps,pnl=0;sp.legs.forEach(function(l){var q=l.qty||1,it=l.type==='c'?Math.max(ST-l.strikeNum,0):Math.max(l.strikeNum-ST,0),sg=l.action==='buy'?1:-1;pnl+=sg*q*(it-l.price);});pts.push({ST:ST,pnl:pnl});if(pnl<mn)mn=pnl;if(pnl>mx)mx=pnl;}var pv=sp.pop;if(pv===undefined){var wc=0;pts.forEach(function(p){if(p.pnl>0)wc++;});pv=wc/pts.length;}var W=340,H=220,pL=45,pR=15,pT=25,pB=35,cw=W-pL-pR,ch=H-pT-pB,rng=(mx-mn)||1,y0=pT+ch*(mx/rng);function xO(s){return pL+(s-lo)/(hi-lo)*cw;}function yO(p){return pT+ch*(mx-p)/rng;}var pU='',pD='',pp=null;pts.forEach(function(p){var x=xO(p.ST),y=yO(p.pnl);if(pp){if(pp.pnl>=0&&p.pnl>=0)pU+=(pU===''?'M'+pp.x+','+pp.y:'')+'L'+x.toFixed(1)+','+y.toFixed(1);else if(pp.pnl<0&&p.pnl<0)pD+=(pD===''?'M'+pp.x+','+pp.y:'')+'L'+x.toFixed(1)+','+y.toFixed(1);else{var t=pp.pnl/(pp.pnl-p.pnl),ix=pp.x+(x-pp.x)*t;if(pp.pnl>=0){pU+=(pU===''?'M'+pp.x+','+pp.y:'')+'L'+ix.toFixed(1)+','+y0.toFixed(1);pD+='M'+ix.toFixed(1)+','+y0.toFixed(1)+'L'+x.toFixed(1)+','+y.toFixed(1);}else{pD+=(pD===''?'M'+pp.x+','+pp.y:'')+'L'+ix.toFixed(1)+','+y0.toFixed(1);pU+='M'+ix.toFixed(1)+','+y0.toFixed(1)+'L'+x.toFixed(1)+','+y.toFixed(1);}}}pp={x:x,y:y,pnl:p.pnl};});var zL='<line x1="'+pL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y0.toFixed(1)+'" stroke="#64748b" stroke-dasharray="4,3"/>';var beL='',beLb='';var bps=sp.breakEven!==undefined?[sp.breakEven]:[sp.breakEvenLow,sp.breakEvenUp].filter(function(x){return x!==undefined;});bps.forEach(function(be){if(be===undefined)return;var bx=xO(be);if(bx>=pL&&bx<=W-pR){beL+='<line x1="'+bx.toFixed(1)+'" y1="'+pT+'" x2="'+bx.toFixed(1)+'" y2="'+(pT+ch)+'" stroke="#facc15" stroke-dasharray="3,3"/>';beLb+='<text x="'+bx.toFixed(1)+'" y="'+(pT+ch+15)+'" fill="#facc15" font-size="8" text-anchor="middle">BE</text>';}});var sx=xO(S);var sL='<line x1="'+sx.toFixed(1)+'" y1="'+pT+'" x2="'+sx.toFixed(1)+'" y2="'+(pT+ch)+'" stroke="#38bdf8" stroke-width="1.5"/>';var pc=pv>=0.65?'#4ade80':pv>=0.5?'#facc15':'#f87171';var svg='<div class="payoff-wrap"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%"><rect width="'+W+'" height="'+H+'" fill="#0a0f1e"/><text x="'+(W/2)+'" y="13" fill="#38bdf8" font-size="10" text-anchor="middle" font-weight="bold">P&L</text><text x="'+(W-pR)+'" y="13" fill="'+pc+'" font-size="9" text-anchor="end">PoP: '+(pv*100).toFixed(0)+'%</text>'+zL+beL+sL+(pD?'<path d="'+pD+'" fill="none" stroke="#f87171" stroke-width="2.2"/>':'')+(pU?'<path d="'+pU+'" fill="none" stroke="#4ade80" stroke-width="2.2"/>':'')+beLb+'</svg></div>';var gr=calcStratGreeks(sp);document.getElementById('mBox').innerHTML='<button class="cls" onclick="closeModal()">✕</button><div class="m-title">'+sp.name+'</div><div class="m-sub">'+sp.expiry+' • '+sp.legs.map(function(l){return '<span class="leg-tag '+(l.action==='buy'?'buy':'sell')+'">'+(l.action==='buy'?'+':'-')+(l.qty&&l.qty>1?l.qty+'×':'')+l.strikeNum.toLocaleString('fa-IR')+'</span>';}).join('')+'</div>'+svg+'<div class="m-sect"><h4>📋 خلاصه</h4><div class="m-kv"><span class="lbl">PoP</span><span class="val" style="color:'+pc+'">'+(pv*100).toFixed(1)+'٪</span></div><div class="m-kv"><span class="lbl">حداکثر سود</span><span class="val v-g">'+Math.round(sp.maxProfit).toLocaleString('fa-IR')+'</span></div><div class="m-kv"><span class="lbl">حداکثر ضرر</span><span class="val v-r">'+Math.round(sp.maxLoss).toLocaleString('fa-IR')+'</span></div><div class="m-kv"><span class="lbl">R/R</span><span class="val">'+sp.rr.toFixed(2)+'</span></div></div><div class="m-sect"><h4>📐 Greeks</h4><div class="greeks-grid"><div class="greek-box"><div class="l">Δ</div><div class="v '+(gr.delta>=0?'v-g':'v-r')+'">'+gr.delta.toFixed(3)+'</div></div><div class="greek-box"><div class="l">Γ</div><div class="v v-y">'+gr.gamma.toFixed(5)+'</div></div><div class="greek-box"><div class="l">V</div><div class="v v-b">'+gr.vega.toFixed(2)+'</div></div><div class="greek-box"><div class="l">Θ</div><div class="v '+(gr.theta>=0?'v-g':'v-r')+'">'+gr.theta.toFixed(3)+'</div></div><div class="greek-box"><div class="l">ρ</div><div class="v v-y">'+gr.rho.toFixed(3)+'</div></div></div></div>';document.getElementById('modal').classList.add('on');document.body.style.overflow='hidden';}
+
+async function runChain(silent){var sym=document.getElementById('chainSymbol').value;CURRENT_SYMBOL=sym;if(!silent){setStatus('chainStatus','⏳...','info');showLoading('دریافت زنجیره...');}try{var b=await fetchBasePrice(sym,silent);if(b)renderBaseCard('baseCardChain',sym);var watch=await fetchAll(silent);CHAIN_DATA=filterBySymbol(watch,sym);if(!CHAIN_DATA.length){setStatus('chainStatus','⚠️ آپشنی نیست','error');if(!silent)hideLoading();return;}analyzeLiquidity(CHAIN_DATA);setStatus('chainStatus','✅ '+CHAIN_DATA.length+' قرارداد','success');renderTopStrikers('topStrikersChain',CHAIN_DATA);renderChain();}catch(e){setStatus('chainStatus','❌ '+e.message,'error');}if(!silent)hideLoading();}
+
+function renderChain(){var list=document.getElementById('chainList');if(!list)return;var type=document.getElementById('typeFilter').value,search=document.getElementById('searchInput').value.trim(),sort=document.getElementById('chainSort').value,S=getBasePrice(CURRENT_SYMBOL);var f=CHAIN_DATA.filter(function(r){if(type!=='all'&&r.type!==type)return false;if(search&&r.code.indexOf(search)===-1&&String(r.strikeNum).indexOf(search)===-1)return false;return true;});if(!f.length){list.innerHTML='<div class="empty">قراردادی نیست</div>';return;}f.sort(function(a,b){if(sort==='volume')return b.volume-a.volume;if(a.type!==b.type)return a.type==='c'?-1:1;return a.strikeNum-b.strikeNum;});var html='<div class="table-wrap"><table class="table"><thead><tr><th>نماد</th><th>نوع</th><th>سررسید</th><th>اعمال</th><th>وضعیت</th><th>قیمت</th><th>حجم</th></tr></thead><tbody>';f.forEach(function(r){var tl=r.type==='c'?'CALL':'PUT',tc=r.type==='c'?'type-call':'type-put';var m=getMoneyness(r.type,r.strikeNum,S);var vb=r.volume>=500?'🟢':r.volume>=100?'🟡':r.volume>=20?'🟠':'🔴';var rb=r.volRank<=3?'⭐':'';html+='<tr onclick="showContract(\''+r.code+'\')"><td class="code-cell">'+r.code+'</td><td class="'+tc+'">'+tl+'</td><td class="expiry-cell">'+r.expiry+'</td><td>'+r.strikeNum.toLocaleString('fa-IR')+'</td><td>'+m+'</td><td class="price-cell">'+parseInt(r.price).toLocaleString('fa-IR')+'</td><td class="vol-cell">'+vb+' '+parseInt(r.volume).toLocaleString('fa-IR')+rb+'</td></tr>';});html+='</tbody></table></div>';list.innerHTML=html;}
+
+function showContract(code){var r=CHAIN_DATA.filter(function(x){return x.code===code;})[0];if(!r)return;var S=getBasePrice(CURRENT_SYMBOL),K=r.strikeNum,T=(r.days||30)/365,g=bs(S,K,T,0.25,0.55,r.type),m=getMoneyness(r.type,K,S);document.getElementById('mBox').innerHTML='<button class="cls" onclick="closeModal()">✕</button><div class="m-title">'+r.code+'</div><div class="m-sub">'+r.raw+'</div><div class="m-sect"><h4>📋 مشخصات</h4><div class="m-kv"><span class="lbl">نوع</span><span class="val">'+(r.type==='c'?'CALL':'PUT')+'</span></div><div class="m-kv"><span class="lbl">قیمت پایه</span><span class="val">'+S.toLocaleString('fa-IR')+'</span></div><div class="m-kv"><span class="lbl">اعمال</span><span class="val v-y">'+K.toLocaleString('fa-IR')+'</span></div><div class="m-kv"><span class="lbl">وضعیت</span><span class="val">'+m+'</span></div><div class="m-kv"><span class="lbl">سررسید</span><span class="val v-g">'+r.expiry+'</span></div><div class="m-kv"><span class="lbl">حجم</span><span class="val">'+parseInt(r.volume).toLocaleString('fa-IR')+'</span></div></div><div class="m-sect"><h4>📐 Greeks</h4><div class="greeks-grid"><div class="greek-box"><div class="l">Δ</div><div class="v v-g">'+g.delta.toFixed(3)+'</div></div><div class="greek-box"><div class="l">Γ</div><div class="v v-y">'+g.gamma.toFixed(5)+'</div></div><div class="greek-box"><div class="l">V</div><div class="v v-b">'+g.vega.toFixed(2)+'</div></div><div class="greek-box"><div class="l">Θ</div><div class="v v-r">'+g.theta.toFixed(2)+'</div></div><div class="greek-box"><div class="l">ρ</div><div class="v v-y">'+g.rho.toFixed(2)+'</div></div></div></div>';document.getElementById('modal').classList.add('on');document.body.style.overflow='hidden';}
+
+function calcGreeks(){var S=parseFloat(document.getElementById('gS').value)||1000,K=parseFloat(document.getElementById('gK').value)||1000,d=parseFloat(document.getElementById('gDays').value)||45,IV=(parseFloat(document.getElementById('gIV').value)||55)/100,r=(parseFloat(document.getElementById('gR').value)||25)/100,T=d/365,c=bs(S,K,T,r,IV,'c'),p=bs(S,K,T,r,IV,'p');document.getElementById('greeksResult').innerHTML='<div class="m-sect" style="margin-top:12px"><h4>📈 CALL</h4><div class="m-kv"><span class="lbl">قیمت</span><span class="val v-y">'+Math.round(c.price).toLocaleString('fa-IR')+'</span></div><div class="greeks-grid"><div class="greek-box"><div class="l">Δ</div><div class="v v-g">'+c.delta.toFixed(3)+'</div></div><div class="greek-box"><div class="l">Γ</div><div class="v v-y">'+c.gamma.toFixed(5)+'</div></div><div class="greek-box"><div class="l">V</div><div class="v v-b">'+c.vega.toFixed(2)+'</div></div><div class="greek-box"><div class="l">Θ</div><div class="v v-r">'+c.theta.toFixed(3)+'</div></div><div class="greek-box"><div class="l">ρ</div><div class="v v-y">'+c.rho.toFixed(3)+'</div></div></div></div><div class="m-sect"><h4>📉 PUT</h4><div class="m-kv"><span class="lbl">قیمت</span><span class="val v-y">'+Math.round(p.price).toLocaleString('fa-IR')+'</span></div><div class="greeks-grid"><div class="greek-box"><div class="l">Δ</div><div class="v v-r">'+p.delta.toFixed(3)+'</div></div><div class="greek-box"><div class="l">Γ</div><div class="v v-y">'+p.gamma.toFixed(5)+'</div></div><div class="greek-box"><div class="l">V</div><div class="v v-b">'+p.vega.toFixed(2)+'</div></div><div class="greek-box"><div class="l">Θ</div><div class="v v-r">'+p.theta.toFixed(3)+'</div></div><div class="greek-box"><div class="l">ρ</div><div class="v v-y">'+p.rho.toFixed(3)+'</div></div></div></div>';}
+
+async function drawChart(){var sym=document.getElementById('chartSymbol').value,type=document.getElementById('chartType').value,result=document.getElementById('chartResult');result.innerHTML='<div style="text-align:center;padding:15px;color:#38bdf8">⏳...</div>';showLoading('رسم نمودار...');try{await fetchBasePrice(sym);renderBaseCard('baseCardChart',sym);var watch=await fetchAll();var all=filterBySymbol(watch,sym);analyzeLiquidity(all);var data=all.filter(function(r){return r.type===type;});if(!data.length){result.innerHTML='<div class="empty">داده نیست</div>';hideLoading();return;}data.sort(function(a,b){return a.strikeNum-b.strikeNum;});var S=getBasePrice(sym),maxP=Math.max.apply(null,data.map(function(r){return parseInt(r.price)||0;}))||1;var W=340,H=240,pL=45,pR=15,pT=20,pB=40,cw=W-pL-pR,ch=H-pT-pB,bw=Math.max(2,cw/data.length-3);var bars='';data.forEach(function(r,i){var x=pL+(i/data.length)*cw+1,ph=((parseInt(r.price)||0)/maxP)*ch,y=pT+ch-ph;var isITM=getMoneyness(r.type,r.strikeNum,S)==='ITM';var fill=type==='c'?(isITM?'#4ade80':'#38bdf8'):(isITM?'#f87171':'#c084fc');bars+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+ph.toFixed(1)+'" fill="'+fill+'" rx="2"/>';});var xL='',step=Math.max(1,Math.floor(data.length/6));for(var j=0;j<data.length;j+=step){var x2=pL+(j/data.length)*cw+bw/2;xL+='<text x="'+x2.toFixed(1)+'" y="'+(pT+ch+15)+'" fill="#64748b" font-size="8" text-anchor="middle">'+data[j].strikeNum.toLocaleString('fa-IR')+'</text>';}var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;background:#0a0f1e;border-radius:8px"><text x="'+(W/2)+'" y="12" fill="'+(type==='c'?'#38bdf8':'#c084fc')+'" font-size="10" text-anchor="middle" font-weight="bold">'+(type==='c'?'CALL':'PUT')+' — '+sym+'</text>'+bars+xL+'</svg>';result.innerHTML='<div class="card">'+svg+'</div>';}catch(e){result.innerHTML='<div class="alert-box">❌ '+e.message+'</div>';}hideLoading();}
+
+async function runCompare(){var s1=document.getElementById('cmpSym1').value,s2=document.getElementById('cmpSym2').value,el=document.getElementById('cmpResult');el.innerHTML='<div style="text-align:center;padding:15px;color:#38bdf8">⏳...</div>';try{await fetchBasePrice(s1);await fetchBasePrice(s2);var w=await fetchAll();var d1=filterBySymbol(w,s1),d2=filterBySymbol(w,s2);analyzeLiquidity(d1);analyzeLiquidity(d2);function st(a,s){return{total:a.length,calls:a.filter(function(r){return r.type==='c';}).length,puts:a.filter(function(r){return r.type==='p';}).length,vol:a.reduce(function(x,r){return x+r.volume;},0),S:getBasePrice(s)};}var t1=st(d1,s1),t2=st(d2,s2);el.innerHTML='<div class="card"><table class="table"><thead><tr><th>ویژگی</th><th>'+s1+'</th><th>'+s2+'</th></tr></thead><tbody><tr><td>قیمت پایه</td><td class="price-cell">'+t1.S.toLocaleString('fa-IR')+'</td><td class="price-cell">'+t2.S.toLocaleString('fa-IR')+'</td></tr><tr><td>کل</td><td>'+t1.total+'</td><td>'+t2.total+'</td></tr><tr><td>CALL</td><td class="type-call">'+t1.calls+'</td><td class="type-call">'+t2.calls+'</td></tr><tr><td>PUT</td><td class="type-put">'+t1.puts+'</td><td class="type-put">'+t2.puts+'</td></tr><tr><td>حجم کل</td><td class="vol-cell">'+t1.vol.toLocaleString('fa-IR')+'</td><td class="vol-cell">'+t2.vol.toLocaleString('fa-IR')+'</td></tr></tbody></table></div>';}catch(e){el.innerHTML='<div class="alert-box">❌ '+e.message+'</div>';}}
+
+window.addEventListener('load',async function(){
+if(!navigator.onLine)document.getElementById('connStatus').className='conn-status offline';
+setTimeout(async function(){try{await fetchBasePrice('خود');renderBaseCard('baseCardScanner','خود');await runScan();}catch(e){console.error(e);}},500);
+});
+window.addEventListener('online',function(){document.getElementById('connStatus').className='conn-status online';showToast('🌐 اتصال برگشت','success');});
+window.addEventListener('offline',function(){var el=document.getElementById('connStatus');el.className='conn-status offline';el.textContent='⚠️ آفلاین';});
+</script>
+</body>
+</html>
