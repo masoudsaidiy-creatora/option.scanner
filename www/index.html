@@ -875,6 +875,85 @@ async function runDebug(){
     add('✅ تمام', 'good');
   }catch(e){ add('❌ '+e.message, 'bad'); }
 }
+  // ═══════════════════════════════════════════════════════
+// v7.9: کشف ساختار PUT از Search
+// ═══════════════════════════════════════════════════════
+async function runDebug(){
+  var out = document.getElementById('debugOutput');
+  var log = [];
+  function add(line, cls){ log.push('<span class="'+(cls||'')+'">'+line+'</span>'); out.innerHTML = log.join('\n'); }
+  try{
+    add('🔍 Debug v7.9', 'info');
+    add('', '');
+    
+    // 1. Search دقیق برای خودرو
+    add('━━━ Search ضخودرو (CALL) ━━━', 'info');
+    try{
+      var d = await fetchWithProxies('https://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/'+encodeURIComponent('ضخودرو'));
+      var list = d.instrumentSearch || d.instruments || [];
+      add('کل: '+list.length, list.length>0?'good':'bad');
+      list.slice(0,10).forEach(x=>{
+        var name = x.lVal18AFC || x.lvc || '?';
+        add('  '+name+' | insCode='+x.insCode+' | lVal30='+(x.lVal30||'?'), 'dim');
+      });
+    }catch(e){ add('❌ '+e.message, 'bad'); }
+    add('', '');
+    
+    add('━━━ Search طخودرو (PUT) ━━━', 'info');
+    try{
+      var d = await fetchWithProxies('https://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/'+encodeURIComponent('طخودرو'));
+      var list = d.instrumentSearch || d.instruments || [];
+      add('کل: '+list.length, list.length>0?'good':'bad');
+      list.slice(0,10).forEach(x=>{
+        var name = x.lVal18AFC || x.lvc || '?';
+        add('  '+name+' | insCode='+x.insCode+' | lVal30='+(x.lVal30||'?'), 'dim');
+      });
+    }catch(e){ add('❌ '+e.message, 'bad'); }
+    add('', '');
+    
+    // 2. قیمت لحظه‌ای برای یه insCode PUT
+    add('━━━ GetClosingPriceInfo برای PUT ━━━', 'info');
+    try{
+      var d = await fetchWithProxies('https://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/'+encodeURIComponent('طستا'));
+      var list = d.instrumentSearch || d.instruments || [];
+      if(list.length > 0 && list[0].insCode){
+        var insCode = list[0].insCode;
+        add('insCode: '+insCode, 'dim');
+        var dp = await fetchWithProxies('https://cdn.tsetmc.com/api/ClosingPrice/GetClosingPriceInfo/'+insCode);
+        var cpi = dp.closingPriceInfo || {};
+        add('lVal18AFC: '+(cpi.lVal18AFC||'?'), 'dim');
+        add('lVal30: '+(cpi.lVal30||'?'), 'dim');
+        add('pDrCotVal (آخرین قیمت): '+(cpi.pDrCotVal||'0'), 'dim');
+        add('pClosing: '+(cpi.pClosing||'0'), 'dim');
+        add('zTotTran (حجم): '+(cpi.zTotTran||'0'), 'dim');
+        add('pSettle (تسویه): '+(cpi.pSettle||'0'), 'dim');
+        add('yesterday: '+(cpi.py||'0'), 'dim');
+        // فیلدهای موجود
+        add('فیلدهای موجود:', 'info');
+        Object.keys(cpi).slice(0, 40).forEach(k=>add('  '+k+': '+cpi[k], 'dim'));
+      }
+    }catch(e){ add('❌ '+e.message, 'bad'); }
+    add('', '');
+    
+    // 3. GetMarketWatch برای paperType=6 — با فیلدهای درست
+    add('━━━ GetMarketWatch paperType=6 ━━━', 'info');
+    try{
+      var d = await fetchWithProxies('https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&withBestLimits=false&hEven=0&RefID=0');
+      var list = d.marketwatch || [];
+      add('کل: '+list.length, 'good');
+      if(list.length > 0){
+        add('فیلدهای رکورد اول:', 'info');
+        Object.keys(list[0]).slice(0, 40).forEach(k=>add('  '+k+': '+list[0][k], 'dim'));
+        add('', '');
+        add('نمونه لواها (5):', 'dim');
+        list.slice(0,5).forEach(x=>add('  lvc='+x.lvc+' | lVal18AFC='+(x.lVal18AFC||'?')+' | insCode='+x.insCode, 'dim'));
+      }
+    }catch(e){ add('❌ '+e.message, 'bad'); }
+    add('', '');
+    
+    add('✅ تمام', 'good');
+  }catch(e){ add('❌ '+e.message, 'bad'); }
+}
 </script>
 </body>
 </html>
