@@ -943,6 +943,31 @@ async function runDebug(){
     add('✅ تمام', 'good');
   }catch(e){ add('❌ خطا: '+e.message, 'bad'); }
 }
+  // ═══════════════════════════════════════════════════════
+// v7.3: دریافت PUT از paperType=7 (TSE جدا می‌ده)
+// ═══════════════════════════════════════════════════════
+var TSE_PUT_URL = 'https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=7&withBestLimits=false&hEven=0&RefID=0';
+
+async function fetchAll(force){
+  if(ALL_DATA.length && !force) return ALL_DATA;
+  var allResults = [];
+  // دریافت CALL (paperType=6)
+  try{
+    var d1 = await fetchWithProxies(TSE_OPT);
+    var calls = d1.marketwatch || [];
+    allResults = allResults.concat(calls);
+    console.log('CALL count:', calls.length);
+  }catch(e){ console.warn('CALL fetch fail:', e); }
+  // دریافت PUT (paperType=7)
+  try{
+    var d2 = await fetchWithProxies(TSE_PUT_URL);
+    var puts = d2.marketwatch || [];
+    allResults = allResults.concat(puts);
+    console.log('PUT count:', puts.length);
+  }catch(e){ console.warn('PUT fetch fail:', e); }
+  ALL_DATA = allResults;
+  return ALL_DATA;
+}
 </script>
 </body>
 </html>
