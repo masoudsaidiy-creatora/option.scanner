@@ -1469,6 +1469,33 @@ TSE_OPT = 'https://tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&wi
 TSE_STOCK = 'https://tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=1&withBestLimits=false&hEven=0&RefID=0';
 ALL_DATA = [];
 ALL_STOCKS = [];
+  // ═══════════════════════════════════════════════════════
+// v9.1: اهرم برگشت + URL جدید tsetmc.com
+// ═══════════════════════════════════════════════════════
+
+TSE_OPT = 'https://tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&withBestLimits=false&hEven=0&RefID=0';
+TSE_STOCK = 'https://tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=1&withBestLimits=false&hEven=0&RefID=0';
+ALL_DATA = [];
+ALL_STOCKS = [];
+
+SYMBOL_MAP['هرم'] = { 
+  exact: 'صندوق سهامی کاریزما اهرمی', 
+  keywords: ['کاریزما', 'اهرمی'], 
+  optionKeyword: 'اهرم' 
+};
+BASE_PRICES['هرم'] = 716;
+
+setTimeout(function(){
+  ['scanSymbol','chainSymbol','advSymbol'].forEach(function(id){
+    var sel = document.getElementById(id);
+    if(sel && !sel.querySelector('option[value="هرم"]')){
+      var opt = document.createElement('option');
+      opt.value = 'هرم';
+      opt.textContent = 'اهرم';
+      sel.insertBefore(opt, sel.children[1] || null);
+    }
+  });
+}, 100);
 </script>
 </body>
 </html>
