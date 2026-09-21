@@ -627,6 +627,106 @@ window.addEventListener('load', async function(){
     }catch(e){ console.error(e); }
   }, 500);
 });
+  // ═══════════════════════════════════════════════════════
+// v7.5: Debug endpoint ها + فیلتر با و/بی‌و
+// ═══════════════════════════════════════════════════════
+
+// فیلتر بهتر — هم با و هم بدون و
+function filterBySymbol(watch, sym){
+  var info = SYMBOL_MAP[sym]; if(!info) return [];
+  var base = info.optionKeyword || sym;
+  var kws = [base];
+  if(base.indexOf('و') === 0) kws.push(base.substring(1));
+  var results = [];
+  for(var i=0;i<watch.length;i++){
+    var item = watch[i];
+    var lvc = item.lvc || '';
+    var lvcN = lvc.replace(/[- \u200c\s]/g,'').replace(/ي/g,'ی').replace(/ى/g,'ی').replace(/ك/g,'ک');
+    if(lvcN.indexOf('اختیار') === -1) continue;
+    var matched = false;
+    for(var v=0;v<kws.length;v++){
+      var kwN = kws[v].replace(/[- \u200c\s]/g,'').replace(/ي/g,'ی').replace(/ى/g,'ی').replace(/ك/g,'ک');
+      if(kwN && lvcN.indexOf(kwN) !== -1){ matched = true; break; }
+    }
+    if(!matched) continue;
+    var p = parseLvc(lvc);
+    var price = item.pDrCotVal || item.pcl || item.pdv || 0;
+    if(!price) continue;
+    results.push({code:item.lva, raw:lvc, type:p.type, strike:p.strike, strikeNum:p.strikeNum, expiry:p.expiry, price, volume:item.zTotTran||0, baseSymbol:sym, days:daysToExpiry(p.expiry)});
+  }
+  return results;
+}
+
+// Debug جامع — تست endpoint های مختلف
+async function runDebug(){
+  var out = document.getElementById('debugOutput');
+  var log = [];
+  function add(line, cls){ log.push('<span class="'+(cls||'')+'">'+line+'</span>'); out.innerHTML = log.join('\n'); }
+  try{
+    add('🔍 Debug v7.5', 'info');
+    add('', '');
+
+    // تست endpoint های مختلف
+    add('━━━ تست endpoint ها ━━━', 'info');
+    var endpoints = [
+      {name:'paperType=6', url:'https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&withBestLimits=false&hEven=0&RefID=0'},
+      {name:'paperType=7', url:'https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=7&withBestLimits=false&hEven=0&RefID=0'},
+      {name:'Search اختیارف', url:'https://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/' + encodeURIComponent('اختیارف')},
+      {name:'Search ط', url:'https://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/' + encodeURIComponent('طستا')}
+    ];
+    for(var i=0;i<endpoints.length;i++){
+      try{
+        var d = await fetchWithProxies(endpoints[i].url);
+        var cnt = (d.marketwatch || d.instrumentSearch || d.instruments || []).length;
+        var list = d.marketwatch || d.instrumentSearch || d.instruments || [];
+        var putCount = 0;
+        list.forEach(x=>{ if((x.lvc||x.lVal18AFC||'').indexOf('اختیارف') !== -1) putCount++; });
+        add('✓ '+endpoints[i].name+' → کل: '+cnt+' | PUT: '+putCount, putCount>0?'good':(cnt>0?'warn':'bad'));
+        if(list.length>0) add('  نمونه: '+(list[0].lvc||list[0].lVal18AFC||'?'), 'dim');
+      }catch(e){ add('✗ '+endpoints[i].name+' → '+e.message.substring(0,40), 'bad'); }
+    }
+    add('', '');
+
+    // از endpoint اصلی، PUTها رو بشمار
+    ALL_DATA = [];
+    var watch = await fetchAll(true);
+    add('━━━ endpoint اصلی ━━━', 'info');
+    add('کل: '+watch.length, 'good');
+    var totalCalls=0, totalPuts=0;
+    var putNames = {};
+    watch.forEach(x=>{
+      var lvc = (x.lvc||'').replace(/[- \u200c]/g,'');
+      if(lvc.indexOf('اختیارف') !== -1){
+        totalPuts++;
+        var m = lvc.match(/اختیارف([^\d]+?)\d/);
+        var name = m ? m[1] : '?';
+        putNames[name] = (putNames[name]||0) + 1;
+      } else if(lvc.indexOf('اختیار') !== -1){
+        totalCalls++;
+      }
+    });
+    add('CALL: '+totalCalls+' | PUT: '+totalPuts, totalPuts>0?'good':'bad');
+    add('', '');
+    if(totalPuts > 0){
+      add('━━━ نام‌های PUT ━━━', 'info');
+      Object.keys(putNames).sort().slice(0,30).forEach(n=>add('  '+n+' → '+putNames[n], 'warn'));
+    }
+    add('', '');
+
+    // تست هر نماد با فیلتر جدید
+    add('━━━ تست هر نماد ━━━', 'info');
+    var syms = Object.keys(SYMBOL_MAP);
+    for(var i=0;i<syms.length;i++){
+      var sym = syms[i];
+      var data = filterBySymbol(watch, sym);
+      var c=0, p=0;
+      data.forEach(r=>{ if(r.type==='c')c++; else if(r.type==='p')p++; });
+      add('«'+sym+'» CALL: '+c+' | PUT: '+p, (p>0?'good':(c>0?'warn':'bad')));
+    }
+    add('', '');
+    add('✅ تمام', 'good');
+  }catch(e){ add('❌ '+e.message, 'bad'); }
+}
 </script>
 </body>
 </html>
