@@ -1462,6 +1462,13 @@ async function runDebug(){
     add('✅ تمام', 'good');
   }catch(e){ add('❌ '+e.message, 'bad'); }
 }
+  // ═══════════════════════════════════════════════════════
+// v8.5: استفاده از tsetmc.com (بدون cdn) — PUTها اینجان
+// ═══════════════════════════════════════════════════════
+TSE_OPT = 'https://tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&withBestLimits=false&hEven=0&RefID=0';
+TSE_STOCK = 'https://tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=1&withBestLimits=false&hEven=0&RefID=0';
+ALL_DATA = [];
+ALL_STOCKS = [];
 </script>
 </body>
 </html>
