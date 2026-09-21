@@ -1040,6 +1040,72 @@ async function runDebug(){
     add('✅ تمام', 'good');
   }catch(e){ add('❌ خطا کلی: '+e.message, 'bad'); }
 }
+  // ═══════════════════════════════════════════════════════
+// v7.4: Fix fetchAll + parseLvc (روش قطعی)
+// ═══════════════════════════════════════════════════════
+
+// 1. fetchAll — یه درخواست، همه داده
+async function fetchAll(force){
+  if(ALL_DATA.length && !force) return ALL_DATA;
+  var url = 'https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?paperTypes[0]=6&withBestLimits=false&hEven=0&RefID=0';
+  var d = await fetchWithProxies(url);
+  ALL_DATA = d.marketwatch || [];
+  console.log('ALL_DATA:', ALL_DATA.length);
+  return ALL_DATA;
+}
+
+// 2. parseLvc — تشخیص با حذف کاراکترهای نامرئی
+function parseLvc(lvc){
+  var r = {type:'c', strike:'', expiry:'', strikeNum:0};
+  if(!lvc) return r;
+  // فقط حروف عربی + لاتین + عدد نگه‌دار
+  var clean = lvc.replace(/[^\u0600-\u06FF0-9a-zA-Z]/g, '');
+  // تشخیص CALL/PUT
+  if(clean.indexOf('اختیارف') !== -1) r.type = 'p';
+  else if(clean.indexOf('اختیارخ') !== -1) r.type = 'c';
+  else if(lvc.indexOf('ط') === 0) r.type = 'p';
+  else if(lvc.indexOf('ض') === 0) r.type = 'c';
+  else r.type = 'c';
+  // استخراج
+  var parts = lvc.split('-').map(function(p){return p.trim();}).filter(function(p){return p.length>0;});
+  for(var i=0;i<parts.length;i++){
+    if(parts[i].indexOf('/') !== -1){
+      r.expiry = parts[i];
+    } else if(/^\d+$/.test(parts[i]) && parts[i].length < 8 && r.strikeNum === 0){
+      r.strike = parts[i];
+      r.strikeNum = parseInt(parts[i]) || 0;
+    }
+  }
+  return r;
+}
+
+// 3. Debug ساده — CALL/PUT شماری
+async function runDebug(){
+  var out=document.getElementById('debugOutput');
+  var log=[];
+  function add(line,cls){ log.push('<span class="'+(cls||'')+'">'+line+'</span>'); out.innerHTML=log.join('\n'); out.scrollTop=out.scrollHeight; }
+  try{
+    add('🔍 Debug v7.4', 'info');
+    ALL_DATA=[];
+    var watch = await fetchAll(true);
+    add('کل داده: '+watch.length, 'good');
+    add('', '');
+    var syms=Object.keys(SYMBOL_MAP);
+    add('━━━ CALL/PUT هر نماد ━━━', 'info');
+    for(var i=0;i<syms.length;i++){
+      var sym=syms[i];
+      var data=filterBySymbol(watch, sym);
+      var calls=0,puts=0;
+      data.forEach(function(r){ if(r.type==='c')calls++; else if(r.type==='p')puts++; });
+      add('«'+sym+'» CALL: '+calls+' | PUT: '+puts, (puts>0?'good':'warn'));
+    }
+    add('', '');
+    add('━━━ نمونه خام ━━━', 'info');
+    watch.slice(0,5).forEach(function(x){ add('  '+(x.lvc||'?'), 'dim'); });
+    add('', '');
+    add('✅ تمام', 'good');
+  }catch(e){ add('❌ خطا: '+e.message, 'bad'); }
+}
 </script>
 </body>
 </html>
