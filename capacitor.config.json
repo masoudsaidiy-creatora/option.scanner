@@ -6,20 +6,15 @@
   "server": {
     "androidScheme": "https",
     "cleartext": true,
-    "allowNavigation": [
-      "cdn.tsetmc.com",
-      "*.tsetmc.com",
-      "corsproxy.io",
-      "api.allorigins.win",
-      "api.codetabs.com",
-      "generativelanguage.googleapis.com",
-      "api.openai.com"
-    ]
+    "allowNavigation": ["*"]
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
   },
   "android": {
     "allowMixedContent": true,
-    "captureInput": true,
-    "webContentsDebuggingEnabled": true,
-    "backgroundColor": "#0b1120"
+    "webContentsDebuggingEnabled": true
   }
 }
